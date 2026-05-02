@@ -1291,23 +1291,30 @@ async function buildImageStackImportTemplate(inWb) {
              Python resolves all filenames via HEAD requests.
   ══════════════════════════════════════════════════════════ */
   if (hasBackend) {
-    sst('i', '✓ Backend detected — resolving real filenames via CDN headers…');
+    sst('i', '⏳ Backend connected — uploading file and resolving filenames, please wait…');
 
-    // Re-serialise the uploaded workbook to send to backend
     const xlsxBytes = XLSX.write(inWb, {type: 'array', bookType: 'xlsx'});
     const blob      = new Blob([new Uint8Array(xlsxBytes)], {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     });
-    const formData  = new FormData();
+    const formData = new FormData();
     formData.append('file', blob, 'input.xlsx');
 
     let resp;
     try {
       resp = await fetch(`${BACKEND_URL}/api/process-image-stack`, {
-        method: 'POST', body: formData
+        method: 'POST',
+        body: formData,
+        signal: AbortSignal.timeout(120000)
       });
     } catch(e) {
-      throw new Error('Backend request failed: ' + e.message);
+      // Network error or timeout — fall through to browser mode with clear message
+      sst('w',
+        '⚠ Could not reach the backend (' + e.message + '). ' +
+        'Processing in browser instead — filenames for UUID-style CDN URLs may not be accurate.'
+      );
+      // Fall through to browser fallback below
+      return await buildImageStackFallback(inWb);
     }
 
     if (!resp.ok) {
@@ -1315,7 +1322,6 @@ async function buildImageStackImportTemplate(inWb) {
       throw new Error(err.error || 'Backend processing failed');
     }
 
-    // Download the returned xlsx directly
     const outBlob = await resp.blob();
     const a = Object.assign(document.createElement('a'), {
       href: URL.createObjectURL(outBlob),
@@ -1327,7 +1333,7 @@ async function buildImageStackImportTemplate(inWb) {
     setTimeout(() => URL.revokeObjectURL(a.href), 15000);
 
     sst('o', '✓ Done! Filenames resolved from CDN headers. File downloaded.');
-    return null; // Signal to doProc() that download was handled
+    return null;
   }
 
   /* ══════════════════════════════════════════════════════════
@@ -1335,12 +1341,14 @@ async function buildImageStackImportTemplate(inWb) {
              Warn user that CDN UUID URLs will not resolve to real names.
   ══════════════════════════════════════════════════════════ */
   sst('w',
-    '⚠ Python backend not detected — processing in browser. ' +
-    'Filenames for CDN UUID-style URLs may not be accurate. ' +
-    'Start app.py for correct filenames.'
+    '⚠ Backend not reachable — processing in browser instead. ' +
+    'Filenames for CDN UUID-style URLs may not be accurate.'
   );
+  return buildImageStackFallback(inWb);
+}
 
-  /* ── Locate "Image Links" sheet ─────────────────────────── */
+/* Browser-only fallback (no network calls, URL path extraction only) */
+function buildImageStackFallback(inWb) {
   const srcName = inWb.SheetNames.find(n => n === 'Image Links');
   if (!srcName) throw new Error("Sheet 'Image Links' not found.");
 
@@ -1350,7 +1358,6 @@ async function buildImageStackImportTemplate(inWb) {
   if (srcRows.length < 2)
     throw new Error("No data rows in 'Image Links'. Add data from Row 2.");
 
-  /* ── Filename helpers ─────────────────────────────────────── */
   function sanitize(s) {
     s = String(s ?? '');
     ['\\','/',':','*','?','"','<','>','|'].forEach(ch => { s = s.split(ch).join('_'); });
@@ -1366,7 +1373,6 @@ async function buildImageStackImportTemplate(inWb) {
     catch(_) { return sanitize(seg) || url; }
   }
 
-  /* ── Build output rows ────────────────────────────────────── */
   const outHeaders = [
     'Import Type','Collection Folder','Image Stack Group',
     'Filename','Image Stack Order'
@@ -1388,7 +1394,6 @@ async function buildImageStackImportTemplate(inWb) {
   if (outData.length < 2)
     throw new Error('No URLs found. Col A=Master ID, Col B=Stack Group, Col C+=URLs.');
 
-  /* ── Build output workbook ────────────────────────────────── */
   const outWb = XLSX.utils.book_new();
   const outSN = 'Image Stack Import Template';
   for (const sn of inWb.SheetNames) {
