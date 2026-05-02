@@ -814,7 +814,7 @@ function orun(id) {
     banner.style.background = 'rgba(43,110,245,.07)';
     banner.style.borderColor = 'rgba(43,110,245,.25)';
     banner.style.color = 'var(--pat-blue-lt)';
-    banner.textContent = '⏳ Checking Python backend status…';
+    banner.textContent = '⏳ Connecting to backend — if it is waking up this may take up to 30 seconds, please wait…';
     checkBackend().then(ok => {
       if (ok) {
         banner.style.background = 'rgba(0,196,140,.07)';
@@ -826,8 +826,7 @@ function orun(id) {
         banner.style.borderColor = 'rgba(245,158,11,.25)';
         banner.style.color = '#F59E0B';
         banner.innerHTML =
-          '⚠ Python backend not detected. Filenames for CDN UUID-style URLs will not be accurate.<br>' +
-          'For correct filenames: run <strong>start_backend.bat</strong> (Windows) or <strong>start_backend.sh</strong> (Mac/Linux) then re-open this tool.';
+          '⚠ Could not reach the backend server. It may still be waking up — close this panel, wait 30 seconds, then click Run → again. If the problem continues, the backend URL may need to be checked.';
       }
     });
   } else {
@@ -1272,7 +1271,7 @@ let backendAvailable = null; // null=unchecked, true/false after check
 async function checkBackend() {
   if (backendAvailable !== null) return backendAvailable;
   try {
-    const r = await fetch(`${BACKEND_URL}/api/health`, {signal: AbortSignal.timeout(2000)});
+    const r = await fetch(`${BACKEND_URL}/api/health`, {signal: AbortSignal.timeout(10000)});
     backendAvailable = r.ok;
   } catch(_) {
     backendAvailable = false;
