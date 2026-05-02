@@ -1,0 +1,2069 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pattern Data Processing Automation Tool</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      /* Pattern brand palette */
+      --pat-blue:     #2B6EF5;
+      --pat-blue-lt:  #4D8BFF;
+      --pat-blue-dk:  #1A4FCC;
+      --pat-navy:     #0A0F1E;
+      --pat-navy-2:   #0E1628;
+      --pat-navy-3:   #121C35;
+      --pat-navy-4:   #172040;
+      --pat-steel:    #1E2C4F;
+      --pat-border:   #1F2D52;
+      --pat-border-lt:#263560;
+      --pat-white:    #FFFFFF;
+      --pat-off:      #E8EDF8;
+      --pat-muted:    #8A9BC4;
+      --pat-faint:    #4A5A82;
+      --pat-faint2:   #2E3D66;
+      --pat-green:    #00C48C;
+      --pat-green-bg: #002E21;
+      --pat-green-bd: #005240;
+      --pat-amber:    #F59E0B;
+      --pat-red:      #EF4444;
+      --pat-red-bg:   #3B0A0A;
+      /* gradients */
+      --grad-brand:   linear-gradient(135deg, #2B6EF5 0%, #1A3FCC 60%, #0D2494 100%);
+      --grad-card:    linear-gradient(145deg, #0E1628 0%, #121C35 100%);
+      --grad-hero:    linear-gradient(135deg, #0A0F1E 0%, #0E1A3A 50%, #0A1230 100%);
+      /* radius */
+      --r-xs:4px; --r-sm:6px; --r-md:8px; --r-lg:12px; --r-xl:16px; --r-2xl:20px;
+    }
+
+    html, body { height: 100%; scroll-behavior: smooth; }
+    body {
+      font-family: 'Sora', sans-serif;
+      background: var(--pat-navy);
+      color: var(--pat-off);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ─── SUBTLE GRID TEXTURE ──────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image:
+        linear-gradient(rgba(43,110,245,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(43,110,245,.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    /* ─── TOPBAR ─────────────────────────────────────── */
+    .topbar {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(10,15,30,.95);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--pat-border);
+      padding: 0 32px;
+      height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .topbar::after {
+      content: '';
+      position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--pat-blue), transparent);
+      opacity: .4;
+    }
+
+    /* Pattern Logo SVG mark */
+    .logo-wrap { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-mark {
+      width: 34px; height: 34px; border-radius: 8px;
+      background: var(--grad-brand);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 0 18px rgba(43,110,245,.35);
+    }
+    .logo-mark svg { width: 20px; height: 20px; }
+    .logo-text { display: flex; flex-direction: column; }
+    .logo-name {
+      font-size: 15px; font-weight: 700; color: var(--pat-white);
+      letter-spacing: -.3px; line-height: 1;
+    }
+    .logo-sub {
+      font-size: 10px; color: var(--pat-blue-lt);
+      letter-spacing: 1.5px; text-transform: uppercase; margin-top: 2px;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .topbar-right { display: flex; gap: 8px; align-items: center; }
+    .btn-ghost {
+      background: transparent; border: 1px solid var(--pat-border-lt);
+      color: var(--pat-muted); padding: 7px 16px; border-radius: var(--r-md);
+      font-size: 12px; font-weight: 500; cursor: pointer; font-family: 'Sora', sans-serif;
+      transition: all .18s; letter-spacing: .3px;
+    }
+    .btn-ghost:hover { border-color: var(--pat-blue); color: var(--pat-blue-lt); background: rgba(43,110,245,.08); }
+    .btn-brand {
+      background: var(--grad-brand); border: none; color: #fff;
+      padding: 8px 18px; border-radius: var(--r-md);
+      font-size: 12px; font-weight: 600; cursor: pointer; font-family: 'Sora', sans-serif;
+      transition: all .18s; letter-spacing: .3px;
+      box-shadow: 0 4px 16px rgba(43,110,245,.3);
+    }
+    .btn-brand:hover { box-shadow: 0 4px 24px rgba(43,110,245,.5); transform: translateY(-1px); }
+
+    /* ─── HERO BANNER ─────────────────────────────────── */
+    .hero {
+      position: relative; z-index: 1;
+      background: var(--grad-hero);
+      border-bottom: 1px solid var(--pat-border);
+      padding: 36px 32px 32px;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; top: -60px; right: -60px;
+      width: 340px; height: 340px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(43,110,245,.18) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero::after {
+      content: '';
+      position: absolute; bottom: -40px; left: 20%;
+      width: 200px; height: 200px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(43,110,245,.09) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-inner { max-width: 1160px; margin: 0 auto; position: relative; z-index: 2; }
+    .hero-eyebrow {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px; font-weight: 500;
+      color: var(--pat-blue-lt); letter-spacing: 2px;
+      text-transform: uppercase; margin-bottom: 10px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .hero-eyebrow::before {
+      content: ''; width: 24px; height: 1px; background: var(--pat-blue-lt);
+    }
+    .hero-title {
+      font-size: 30px; font-weight: 700; color: var(--pat-white);
+      letter-spacing: -.5px; line-height: 1.15; margin-bottom: 10px;
+    }
+    .hero-title span { color: var(--pat-blue-lt); }
+    .hero-desc { font-size: 13px; color: var(--pat-muted); max-width: 600px; line-height: 1.6; }
+    .hero-bullets {
+      list-style: none; margin: 12px 0 0; padding: 0;
+      max-width: 600px; display: flex; flex-direction: column; gap: 7px;
+    }
+    .hero-bullets li {
+      font-size: 13px; color: var(--pat-muted); line-height: 1.5;
+      display: flex; align-items: flex-start; gap: 10px;
+    }
+    .hero-bullets li::before {
+      content: '';
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--pat-blue-lt); flex-shrink: 0; margin-top: 5px;
+    }
+
+    /* ─── DISCLAIMER BANNER ───────────────────────────── */
+    .disclaimer {
+      position: relative; z-index: 1;
+      background: rgba(245,158,11,.06);
+      border-bottom: 1px solid rgba(245,158,11,.2);
+      padding: 10px 32px;
+      display: flex; align-items: flex-start; gap: 10px;
+    }
+    .disc-icon {
+      font-size: 14px; flex-shrink: 0; margin-top: 1px;
+    }
+    .disc-text {
+      font-size: 12px; color: rgba(245,158,11,.9); line-height: 1.55;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+    .disc-text strong { color: #F59E0B; font-weight: 600; }
+
+    /* ─── MAIN ────────────────────────────────────────── */
+    .main { padding: 28px 32px 80px; max-width: 1160px; margin: 0 auto; position: relative; z-index: 1; }
+
+    /* ─── WORKFLOW STRIP ──────────────────────────────── */
+    .wf-strip {
+      background: var(--pat-navy-3);
+      border: 1px solid var(--pat-border);
+      border-radius: var(--r-xl);
+      padding: 20px 28px;
+      margin-bottom: 28px;
+      display: flex; align-items: center; overflow-x: auto;
+      position: relative; overflow: hidden;
+    }
+    .wf-strip::before {
+      content: '';
+      position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+      background: var(--grad-brand); border-radius: 0 2px 2px 0;
+    }
+    .wf-step { display: flex; flex-direction: column; align-items: center; min-width: 96px; text-align: center; }
+    .wf-dot {
+      width: 34px; height: 34px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; margin-bottom: 7px;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+    .wf-dot.done { background: var(--pat-green-bg); color: var(--pat-green); border: 1px solid var(--pat-green-bd); }
+    .wf-dot.cur  { background: var(--grad-brand); color: #fff; box-shadow: 0 0 12px rgba(43,110,245,.4); }
+    .wf-dot.idle { background: var(--pat-steel); color: var(--pat-faint); border: 1px solid var(--pat-border); }
+    .wf-lbl { font-size: 10px; color: var(--pat-muted); font-weight: 500; white-space: nowrap; letter-spacing: .3px; }
+    .wf-line { flex: 1; height: 1px; background: var(--pat-border); margin: 0 6px; margin-top: -18px; min-width: 16px; }
+
+    /* ─── STATS ───────────────────────────────────────── */
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap: 12px; margin-bottom: 28px; }
+    .stat-card {
+      background: var(--grad-card);
+      border: 1px solid var(--pat-border);
+      border-radius: var(--r-lg);
+      padding: 16px 18px;
+      position: relative; overflow: hidden;
+      transition: border-color .18s;
+    }
+    .stat-card:hover { border-color: var(--pat-border-lt); }
+    .stat-card::after {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: var(--grad-brand); opacity: .6;
+    }
+    .s-lbl { font-size: 10px; color: var(--pat-faint); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; font-family: 'IBM Plex Mono', monospace; }
+    .s-val { font-size: 26px; font-weight: 700; color: var(--pat-white); line-height: 1; }
+    .s-sub { font-size: 11px; color: var(--pat-faint); margin-top: 4px; }
+    .s-sub.ok { color: var(--pat-green); }
+
+    /* ─── SECTION TITLE ──────────────────────────────── */
+    .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .sec-title {
+      font-size: 11px; font-weight: 600; color: var(--pat-muted);
+      text-transform: uppercase; letter-spacing: 1.5px;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+    .sec-line { flex: 1; height: 1px; background: var(--pat-border); }
+
+    /* ─── SEARCH + TABS ───────────────────────────────── */
+    .search-bar {
+      background: var(--pat-navy-3);
+      border: 1px solid var(--pat-border);
+      border-radius: var(--r-md);
+      padding: 10px 16px;
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 14px;
+      transition: border-color .18s;
+    }
+    .search-bar:focus-within { border-color: var(--pat-blue); }
+    .search-bar svg { width: 14px; height: 14px; opacity: .4; flex-shrink: 0; }
+    .search-bar input {
+      background: none; border: none; outline: none;
+      color: var(--pat-off); font-family: 'Sora', sans-serif; font-size: 13px; width: 100%;
+    }
+    .search-bar input::placeholder { color: var(--pat-faint); }
+
+    .ftabs { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
+    .tab {
+      padding: 5px 14px; border-radius: 20px; font-size: 11px; font-weight: 600;
+      border: 1px solid var(--pat-border); background: transparent;
+      color: var(--pat-faint); cursor: pointer; font-family: 'Sora', sans-serif;
+      letter-spacing: .4px; transition: all .15s;
+    }
+    .tab.act { background: rgba(43,110,245,.15); border-color: var(--pat-blue); color: var(--pat-blue-lt); }
+    .tab:hover:not(.act) { border-color: var(--pat-border-lt); color: var(--pat-muted); }
+
+    /* ─── MACRO GRID ──────────────────────────────────── */
+    .mgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap: 14px; }
+    .mc {
+      background: var(--grad-card);
+      border: 1px solid var(--pat-border);
+      border-radius: var(--r-xl);
+      padding: 22px;
+      position: relative; overflow: hidden;
+      transition: border-color .2s, transform .2s, box-shadow .2s;
+      cursor: default;
+    }
+    .mc:hover {
+      border-color: var(--pat-blue);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(43,110,245,.15);
+    }
+    .mc::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      border-radius: var(--r-xl) var(--r-xl) 0 0;
+    }
+    .mc.c-blue::before   { background: linear-gradient(90deg,#2B6EF5,#4D8BFF); }
+    .mc.c-cyan::before   { background: linear-gradient(90deg,#06B6D4,#22D3EE); }
+    .mc.c-green::before  { background: linear-gradient(90deg,#00C48C,#34D399); }
+    .mc.c-amber::before  { background: linear-gradient(90deg,#F59E0B,#FCD34D); }
+    .mc.c-purple::before { background: linear-gradient(90deg,#7C3AED,#A78BFA); }
+    .mc.c-pink::before   { background: linear-gradient(90deg,#EC4899,#F472B6); }
+    .mc.c-teal::before   { background: linear-gradient(90deg,#0D9488,#2DD4BF); }
+
+    .mc-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+    .mc-icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .mc-icon svg { width: 20px; height: 20px; }
+    .mc-icon.ic-blue   { background: rgba(43,110,245,.15);  } .mc-icon.ic-blue   svg { fill: #4D8BFF; }
+    .mc-icon.ic-cyan   { background: rgba(6,182,212,.15);   } .mc-icon.ic-cyan   svg { fill: #22D3EE; }
+    .mc-icon.ic-green  { background: rgba(0,196,140,.15);   } .mc-icon.ic-green  svg { fill: #00C48C; }
+    .mc-icon.ic-amber  { background: rgba(245,158,11,.15);  } .mc-icon.ic-amber  svg { fill: #FBBF24; }
+    .mc-icon.ic-purple { background: rgba(124,58,237,.15);  } .mc-icon.ic-purple svg { fill: #A78BFA; }
+    .mc-icon.ic-pink   { background: rgba(236,72,153,.15);  } .mc-icon.ic-pink   svg { fill: #F472B6; }
+    .mc-icon.ic-teal   { background: rgba(13,148,136,.15);  } .mc-icon.ic-teal   svg { fill: #2DD4BF; }
+
+    .mc-badge { font-size: 10px; padding: 3px 9px; border-radius: 20px; font-weight: 600; letter-spacing: .4px; font-family: 'IBM Plex Mono', monospace; }
+    .b-act { background: rgba(0,196,140,.12); color: #00C48C; border: 1px solid rgba(0,196,140,.25); }
+    .b-new { background: rgba(43,110,245,.12); color: #4D8BFF; border: 1px solid rgba(43,110,245,.25); }
+
+    .mc-title { font-size: 14px; font-weight: 600; color: var(--pat-white); margin-bottom: 6px; }
+    .mc-desc  { font-size: 12px; color: var(--pat-muted); line-height: 1.55; margin-bottom: 12px; }
+    .mc-meta  { font-size: 11px; color: var(--pat-faint); margin-bottom: 16px; display: flex; gap: 14px; font-family: 'IBM Plex Mono', monospace; }
+    .mc-foot  { display: flex; gap: 8px; }
+
+    .cbtn {
+      flex: 1; padding: 8px 10px; border-radius: var(--r-md);
+      font-size: 12px; font-family: 'Sora', sans-serif;
+      cursor: pointer; font-weight: 600; text-align: center;
+      border: none; text-decoration: none; display: inline-block;
+      letter-spacing: .3px; transition: all .18s;
+    }
+    .c-dl  { background: var(--pat-steel); color: var(--pat-muted); border: 1px solid var(--pat-border); }
+    .c-dl:hover  { border-color: var(--pat-border-lt); color: var(--pat-off); }
+    .c-run { background: var(--grad-brand); color: #fff; box-shadow: 0 4px 12px rgba(43,110,245,.25); }
+    .c-run:hover { box-shadow: 0 4px 20px rgba(43,110,245,.45); transform: translateY(-1px); }
+
+    .empty { grid-column: 1/-1; text-align: center; padding: 70px 20px; color: var(--pat-faint); }
+    .empty .eico { font-size: 36px; margin-bottom: 14px; opacity: .4; }
+    .empty p { font-size: 13px; margin-bottom: 18px; color: var(--pat-muted); }
+    .empty button { background: var(--grad-brand); border: none; color: #fff; padding: 9px 20px; border-radius: var(--r-md); font-family: 'Sora', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; }
+
+    /* ─── FOOTER ──────────────────────────────────────── */
+    .footer {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+      background: rgba(10,15,30,.97);
+      border-top: 1px solid var(--pat-border);
+      padding: 10px 32px;
+      display: flex; align-items: center; justify-content: space-between;
+      backdrop-filter: blur(20px);
+    }
+    .footer-left { display: flex; align-items: center; gap: 8px; }
+    .footer-logo {
+      width: 22px; height: 22px; border-radius: 5px;
+      background: var(--grad-brand);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .footer-logo svg { width: 13px; height: 13px; }
+    .footer-text { font-size: 11px; color: var(--pat-faint); font-family: 'IBM Plex Mono', monospace; }
+    .footer-text strong { color: var(--pat-muted); }
+    .footer-right { font-size: 13px; font-weight: 600; color: var(--pat-muted); font-family: 'Sora', sans-serif; letter-spacing: -.1px; }
+    .footer-right .by-name { color: var(--pat-blue-lt); font-weight: 700; font-size: 14px; }
+    .footer-right .by-team { color: var(--pat-green); font-size: 12px; font-weight: 500; font-family: 'IBM Plex Mono', monospace; letter-spacing: .5px; display: block; margin-top: 1px; }
+
+    /* ─── MODALS ──────────────────────────────────────── */
+    .ov {
+      position: fixed; inset: 0;
+      background: rgba(5,9,20,.85);
+      backdrop-filter: blur(12px);
+      display: none; align-items: center; justify-content: center;
+      z-index: 200; padding: 20px;
+    }
+    .ov.show { display: flex; }
+    .mod {
+      background: var(--pat-navy-2);
+      border: 1px solid var(--pat-border-lt);
+      border-radius: var(--r-2xl);
+      width: 600px; max-width: 100%;
+      padding: 32px; max-height: 90vh; overflow-y: auto;
+      box-shadow: 0 24px 80px rgba(0,0,0,.6);
+      position: relative;
+    }
+    .mod::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: var(--grad-brand); border-radius: var(--r-2xl) var(--r-2xl) 0 0;
+    }
+    .mod-sm { width: 500px; }
+
+    .mh { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .mttl { font-size: 18px; font-weight: 700; color: var(--pat-white); letter-spacing: -.3px; }
+    .mclose {
+      width: 30px; height: 30px; background: var(--pat-steel);
+      border: none; border-radius: var(--r-md); color: var(--pat-muted);
+      cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: all .15s;
+    }
+    .mclose:hover { background: var(--pat-border-lt); color: var(--pat-off); }
+    .msub { font-size: 12px; color: var(--pat-muted); margin-bottom: 24px; }
+
+    /* step pills */
+    .pills { display: flex; gap: 8px; margin-bottom: 24px; }
+    .pill { flex: 1; padding: 11px; border-radius: var(--r-lg); border: 1px solid var(--pat-border); text-align: center; transition: all .18s; }
+    .pill.pd { border-color: var(--pat-green-bd); background: rgba(0,196,140,.08); }
+    .pill.pc { border-color: var(--pat-blue); background: rgba(43,110,245,.1); }
+    .pn { font-size: 10px; font-weight: 600; color: var(--pat-faint); margin-bottom: 3px; font-family: 'IBM Plex Mono', monospace; }
+    .pl { font-size: 12px; color: var(--pat-faint); font-weight: 500; }
+    .pill.pd .pn { color: var(--pat-green); } .pill.pd .pl { color: #4ade80; }
+    .pill.pc .pn { color: var(--pat-blue-lt); } .pill.pc .pl { color: var(--pat-blue-lt); }
+
+    /* instruction box */
+    .ibox {
+      background: rgba(255,255,255,.03);
+      border: 1px solid var(--pat-border);
+      border-radius: var(--r-lg);
+      padding: 16px 18px; margin-bottom: 18px;
+    }
+    .ibt {
+      font-size: 10px; color: var(--pat-blue-lt);
+      text-transform: uppercase; letter-spacing: 1.5px;
+      font-weight: 600; margin-bottom: 12px;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+    .ist { display: flex; gap: 10px; margin-bottom: 9px; align-items: flex-start; font-size: 12px; color: var(--pat-muted); line-height: 1.55; }
+    .isn {
+      min-width: 20px; height: 20px;
+      background: rgba(43,110,245,.18); border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; color: var(--pat-blue-lt); font-weight: 700;
+      margin-top: 1px; flex-shrink: 0;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* download link */
+    .dlk {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; padding: 12px;
+      background: rgba(43,110,245,.1); border: 1px solid rgba(43,110,245,.35);
+      border-radius: var(--r-md); color: var(--pat-blue-lt);
+      font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 600;
+      cursor: pointer; margin-bottom: 16px; text-align: center;
+      text-decoration: none; transition: all .18s;
+    }
+    .dlk:hover { background: rgba(43,110,245,.18); border-color: var(--pat-blue); }
+
+    /* upload zone */
+    .upz {
+      border: 1.5px dashed var(--pat-border-lt);
+      border-radius: var(--r-lg); padding: 32px;
+      text-align: center; cursor: pointer;
+      transition: all .18s; margin-bottom: 8px;
+      background: rgba(255,255,255,.02);
+    }
+    .upz:hover, .upz.drag {
+      border-color: var(--pat-blue);
+      background: rgba(43,110,245,.06);
+    }
+    .upi { font-size: 28px; margin-bottom: 10px; }
+    .upt { font-size: 13px; color: var(--pat-muted); font-weight: 500; }
+    .upt strong { color: var(--pat-blue-lt); }
+    .uph { font-size: 11px; color: var(--pat-faint); margin-top: 5px; font-family: 'IBM Plex Mono', monospace; }
+
+    /* status */
+    .stb { margin: 10px 0; min-height: 30px; }
+    .stm { font-size: 12px; padding: 8px 12px; border-radius: var(--r-md); display: none; line-height: 1.4; font-family: 'IBM Plex Mono', monospace; }
+    .stm.on { display: block; }
+    .si { background: rgba(43,110,245,.12); color: var(--pat-blue-lt); border: 1px solid rgba(43,110,245,.2); }
+    .so { background: rgba(0,196,140,.1); color: var(--pat-green); border: 1px solid rgba(0,196,140,.2); }
+    .se { background: rgba(239,68,68,.1); color: #FCA5A5; border: 1px solid rgba(239,68,68,.2); }
+    .sw { background: rgba(245,158,11,.1); color: #FDE68A; border: 1px solid rgba(245,158,11,.2); }
+
+    /* progress */
+    .pw { height: 3px; background: var(--pat-steel); border-radius: 2px; margin-bottom: 14px; overflow: hidden; display: none; }
+    .pw.on { display: block; }
+    .pb { height: 100%; background: var(--grad-brand); border-radius: 2px; width: 0%; transition: width .25s; }
+
+    /* modal actions */
+    .mact { display: flex; gap: 10px; margin-top: 22px; }
+    .mb { flex: 1; padding: 12px; border-radius: var(--r-md); font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .18s; border: none; letter-spacing: .3px; }
+    .mb-c { background: var(--pat-steel); border: 1px solid var(--pat-border-lt); color: var(--pat-muted); }
+    .mb-c:hover { background: var(--pat-border-lt); color: var(--pat-off); }
+    .mb-g { background: var(--grad-brand); color: #fff; box-shadow: 0 4px 14px rgba(43,110,245,.3); }
+    .mb-g:hover:not(:disabled) { box-shadow: 0 4px 22px rgba(43,110,245,.5); transform: translateY(-1px); }
+    .mb-g:disabled { background: var(--pat-steel); color: var(--pat-faint); cursor: not-allowed; box-shadow: none; transform: none; }
+    .mb-d { background: rgba(0,196,140,.15); border: 1px solid rgba(0,196,140,.3); color: var(--pat-green); }
+
+    /* add-macro form */
+    .fr { margin-bottom: 16px; }
+    .fr2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+    .fl { font-size: 11px; color: var(--pat-muted); margin-bottom: 7px; display: block; text-transform: uppercase; letter-spacing: .8px; font-weight: 600; font-family: 'IBM Plex Mono', monospace; }
+    .fc { width: 100%; background: rgba(255,255,255,.04); border: 1px solid var(--pat-border-lt); border-radius: var(--r-md); padding: 10px 14px; color: var(--pat-off); font-family: 'Sora', sans-serif; font-size: 13px; outline: none; transition: border-color .18s; }
+    .fc:focus { border-color: var(--pat-blue); background: rgba(43,110,245,.05); }
+    textarea.fc { resize: vertical; min-height: 90px; }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--pat-steel); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════ TOPBAR ══════════════ -->
+<header class="topbar">
+  <div class="logo-wrap">
+    <!-- Pattern logo mark (double-slash chevron, matches brand) -->
+    <div class="logo-mark">
+      <svg viewBox="0 0 36 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="16" width="20" height="7" rx="3.5" fill="white" transform="rotate(-32 4 20)"/>
+        <rect x="14" y="6" width="20" height="7" rx="3.5" fill="white" opacity="0.75" transform="rotate(-32 18 10)"/>
+      </svg>
+    </div>
+    <div class="logo-text">
+      <span class="logo-name">Pattern Data Processing</span>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <button class="btn-ghost" onclick="om('docsOv')">Documentation</button>
+    <button class="btn-brand" onclick="om('addOv')">+ Add Tool</button>
+  </div>
+</header>
+
+<!-- ══════════════ HERO ══════════════ -->
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-eyebrow">Automation Portal</div>
+    <h1 class="hero-title">Pattern <span>Data Processing Automation Tool</span></h1>
+    <ul class="hero-bullets">
+      <li>Download a template for the tool you need</li>
+      <li>Fill in your data following the on-screen instructions</li>
+      <li>Upload the filled file and let the tool process it</li>
+      <li>Download the ready-to-use output — all in your browser, no Excel blocking</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ══════════════ DISCLAIMER ══════════════ -->
+<div class="disclaimer">
+  <div class="disc-icon">⚠️</div>
+  <div class="disc-text">
+    <strong>Important notice:</strong> These tools operate based on specific data patterns. They may fail to deliver accurate results if the expected pattern is absent or has changed. <strong>Always verify the output data before use</strong>, especially when running a tool for the first time or after any source-format changes.
+  </div>
+</div>
+
+<!-- ══════════════ MAIN ══════════════ -->
+<main class="main">
+
+
+
+
+
+  <!-- Section header -->
+  <div class="sec-head">
+    <div class="sec-title">All tools</div>
+    <div class="sec-line"></div>
+  </div>
+
+  <div class="search-bar">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input type="text" id="srch" placeholder="Search by name or description…" oninput="rc()" />
+  </div>
+  <div class="ftabs" id="ftabs"></div>
+  <div class="mgrid" id="mgrid"></div>
+
+</main>
+
+<!-- ══════════════ FOOTER ══════════════ -->
+<footer class="footer">
+  <div class="footer-left">
+    <div class="footer-logo">
+      <svg viewBox="0 0 36 28" fill="none">
+        <rect x="0" y="16" width="20" height="7" rx="3.5" fill="white" transform="rotate(-32 4 20)"/>
+        <rect x="14" y="6" width="20" height="7" rx="3.5" fill="white" opacity="0.75" transform="rotate(-32 18 10)"/>
+      </svg>
+    </div>
+    <div class="footer-text">© 2025 Pattern.</div>
+  </div>
+  <div class="footer-right">Designed by <span class="by-name">Akshay Kargutkar</span><span class="by-team">Team Ops Avengers</span></div>
+</footer>
+
+<!-- ══════════════ RUN MODAL ══════════════ -->
+<div class="ov" id="runOv" onclick="ovc(event,'runOv')">
+  <div class="mod">
+    <div class="mh"><span class="mttl" id="rT">Run tool</span><button class="mclose" onclick="cm('runOv')">✕</button></div>
+    <div class="msub" id="rS"></div>
+    <div class="pills">
+      <div class="pill pc" id="pi1"><div class="pn">01</div><div class="pl">Download</div></div>
+      <div class="pill"    id="pi2"><div class="pn">02</div><div class="pl">Fill &amp; upload</div></div>
+      <div class="pill"    id="pi3"><div class="pn">03</div><div class="pl">Process</div></div>
+      <div class="pill"    id="pi4"><div class="pn">04</div><div class="pl">Done</div></div>
+    </div>
+    <div class="ibox" id="rI"></div>
+    <!-- Backend status banner — shown only for tools that need it -->
+    <div id="backendBanner" style="display:none;margin-bottom:14px;padding:10px 14px;border-radius:8px;font-size:12px;font-family:'IBM Plex Mono',monospace;line-height:1.5;border:1px solid"></div>
+    <!-- Disclaimer reminder inside modal -->
+    <div style="background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:11px;color:rgba(245,158,11,.85);font-family:'IBM Plex Mono',monospace;line-height:1.5;">
+      ⚠ These tools work on specific patterns. Verify results before use, especially for the first run.
+    </div>
+    <a id="dlbtn" href="#" target="_blank" class="dlk" onclick="sp(1)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Download Template (.xlsx)
+    </a>
+    <div class="upz" id="upz"
+         onclick="document.getElementById('ffi').click()"
+         ondragover="event.preventDefault();this.classList.add('drag')"
+         ondragleave="this.classList.remove('drag')"
+         ondrop="odrop(event)">
+      <div class="upi">📂</div>
+      <div class="upt"><strong>Click to upload</strong> or drag &amp; drop your filled template</div>
+      <div class="uph">.xlsx files only</div>
+      <input type="file" id="ffi" style="display:none" accept=".xlsx,.xls" onchange="ofc(this)" />
+    </div>
+    <div class="stb">
+      <div class="stm si" id="si"></div>
+      <div class="stm so" id="so"></div>
+      <div class="stm se" id="se"></div>
+      <div class="stm sw" id="sw"></div>
+    </div>
+    <div class="pw" id="pw"><div class="pb" id="pb"></div></div>
+    <div class="mact">
+      <button class="mb mb-c" onclick="cm('runOv')">Cancel</button>
+      <button class="mb mb-g" id="procB" onclick="doProc()" disabled>Process &amp; Download →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ ADD MACRO MODAL ══════════════ -->
+<div class="ov" id="addOv" onclick="ovc(event,'addOv')">
+  <div class="mod mod-sm">
+    <div class="mh"><span class="mttl">Add new tool</span><button class="mclose" onclick="cm('addOv')">✕</button></div>
+    <div class="msub">Register a new tool card in the hub.</div>
+    <div class="fr"><label class="fl">Tool name *</label><input class="fc" id="fN" placeholder="e.g. Invoice Generator" /></div>
+    <div class="fr"><label class="fl">Description</label><input class="fc" id="fD" placeholder="What does this tool do?" /></div>
+    <div class="fr2">
+      <div><label class="fl">Category</label>
+        <select class="fc" id="fCt"><option>Operations</option><option>Finance</option><option>HR</option><option>Reports</option><option>Other</option></select></div>
+      <div><label class="fl">Card colour</label>
+        <select class="fc" id="fCo"><option value="c-blue">Blue</option><option value="c-cyan">Cyan</option><option value="c-green">Green</option><option value="c-amber">Amber</option><option value="c-purple">Purple</option><option value="c-teal">Teal</option><option value="c-pink">Pink</option></select></div>
+    </div>
+    <div class="fr"><label class="fl">Template URL (Google Drive / SharePoint)</label><input class="fc" id="fU" placeholder="https://drive.google.com/…" /></div>
+    <div class="fr"><label class="fl">Instructions (one per line)</label><textarea class="fc" id="fIn" placeholder="Step 1: Enter ASINs in row 1&#10;Step 2: Paste Amazon data&#10;Step 3: Upload here"></textarea></div>
+    <div class="mact">
+      <button class="mb mb-c" onclick="cm('addOv')">Cancel</button>
+      <button class="mb mb-g" onclick="addM()">Add to Hub →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ DOCS MODAL ══════════════ -->
+<div class="ov" id="docsOv" onclick="ovc(event,'docsOv')">
+  <div class="mod mod-sm">
+    <div class="mh"><span class="mttl">Documentation</span><button class="mclose" onclick="cm('docsOv')">✕</button></div>
+    <div class="msub">How to use Pattern Data Processing Automation Tool — quick guide for users and admins.</div>
+    <div class="ibox">
+      <div class="ibt">For users — running a tool</div>
+      <div class="ist"><div class="isn">1</div><span>Find the tool using search or category filter tabs.</span></div>
+      <div class="ist"><div class="isn">2</div><span>Click <strong style="color:#fff">↓ Template</strong> to download the Excel template.</span></div>
+      <div class="ist"><div class="isn">3</div><span>Fill in data following the on-screen instructions inside the Run panel.</span></div>
+      <div class="ist"><div class="isn">4</div><span>Click <strong style="color:#fff">Run →</strong>, upload your filled file, then hit <em>Process &amp; Download</em>.</span></div>
+      <div class="ist"><div class="isn">5</div><span>The output file downloads automatically with all original sheets preserved, plus a new output sheet.</span></div>
+    </div>
+    <div class="ibox" style="margin-top:12px;background:rgba(245,158,11,.05);border-color:rgba(245,158,11,.2)">
+      <div class="ibt" style="color:#F59E0B">Pattern-based tools — important notice</div>
+      <div class="ist"><div class="isn" style="background:rgba(245,158,11,.15);color:#F59E0B">!</div><span>These tools rely on recognising specific data patterns. If the source data format changes, the tool may produce incomplete or incorrect results.</span></div>
+      <div class="ist"><div class="isn" style="background:rgba(245,158,11,.15);color:#F59E0B">!</div><span>Always cross-check the output against the source data when running a tool for the first time or after a format update.</span></div>
+    </div>
+    <div class="ibox" style="margin-top:12px">
+      <div class="ibt">For admins — adding a tool</div>
+      <div class="ist"><div class="isn">1</div><span>Upload the .xlsx template to Google Drive / SharePoint and copy the direct-download link.</span></div>
+      <div class="ist"><div class="isn">2</div><span>Click <strong style="color:#fff">+ Add Tool</strong>, fill in all details including step-by-step instructions.</span></div>
+      <div class="ist"><div class="isn">3</div><span>Click <strong style="color:#fff">Add to Hub</strong> — the card appears immediately.</span></div>
+    </div>
+    <div class="mact"><button class="mb mb-g" style="flex:none;padding:11px 32px" onclick="cm('docsOv')">Got it</button></div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   TOOL REGISTRY
+   Add new tools here. processFn = name of the JS function
+   that handles processing for that tool.
+══════════════════════════════════════════════════════════════ */
+const MACROS = [
+  {
+    id: 1,
+    title: 'AU Sellers Data Extractor',
+    desc: 'Paste Amazon detail page data per ASIN to extract all competitor seller names and prices into a clean Output sheet.',
+    color: 'c-blue', icon: 'ic-blue', cat: 'Operations', badge: 'active',
+    templateUrl: 'https://drive.usercontent.google.com/u/0/uc?id=1pip-kc5TXHl-e2kVnGaI7qsOnbbMylI3&export=download',
+    outputName: 'AU_Sellers_Output.xlsx',
+    processFn: 'extractSellerPrices',
+    instructions: [
+      'Enter ASINs horizontally in Row 1 of Sheet 1 (A1=first ASIN, B1=second…)',
+      'Open each ASIN detail page on Amazon. Select all (Ctrl+A) and copy.',
+      'Paste below the ASIN column from Row 2 — Paste as Values (Ctrl+Shift+V). Do NOT double-click the cell first.',
+      'More than one seller → "Other sellers on Amazon" → See More → Ctrl+A → copy → paste.',
+      'Suppressed buy box → "See all buying options" → Ctrl+A → copy → paste.',
+      'Subscribe & Save shown → copy only the One-time purchase section.',
+      'Repeat for all ASINs, save the file, then upload it here.'
+    ]
+  },
+  {
+    id: 2,
+    title: 'Media Stack Outputs Builder',
+    desc: 'Reorganises Media Stacks data by group — creates one output sheet per Media Stack Group, mapping every Master ID to its ordered image URLs.',
+    color: 'c-cyan', icon: 'ic-cyan', cat: 'Operations', badge: 'active',
+    templateUrl: 'https://drive.usercontent.google.com/u/0/uc?id=1CWZdI7xxZ0wf-GK0jJlygUqhkm_F5tl3&export=download',
+    outputName: 'MediaStack_Outputs.xlsx',
+    processFn: 'buildMediaStackOutputs',
+    instructions: [
+      'Open the template and go to the "List of Master ID" sheet.',
+      'Paste your Master IDs in Column A starting from Row 2 (one per row).',
+      'Go to the "Media Stacks" sheet — it must contain columns: Collection Folder, Media Stack Group, Media Stack Order, Media Thumb, Preview.',
+      'Paste your Media Stacks data starting from Row 2 (headers must remain in Row 1).',
+      'Save the file and upload it here.',
+      'The output will contain one sheet per unique Media Stack Group.',
+      'Each sheet lists ALL Master IDs in Column A. Column B shows "Media stack not found" (in red) if no image exists for that ID in that group.',
+      'Image URLs fill Columns C onwards in order. The "_thumb.png" suffix is automatically stripped from all URLs.'
+    ]
+  },
+  {
+    id: 3,
+    title: 'Image Stack Import Template Builder',
+    desc: 'Converts a horizontal image-URL grid into a vertical import-ready list. Column B = Image Stack Group (supports multiple groups per file), Columns C+ = image URLs.',
+    color: 'c-green', icon: 'ic-green', cat: 'Operations', badge: 'active',
+    templateUrl: 'https://drive.usercontent.google.com/u/0/uc?id=1Czunm2Ud7jrQM72eYkC5odF0l0hsxJsm&export=download',
+    outputName: 'ImageStack_Import_Template.xlsx',
+    processFn: 'buildImageStackImportTemplate',
+    instructions: [
+      'Download the template and go to the "Image Links" sheet.',
+      'Column A = Master IDs (one per row, starting from Row 2).',
+      'Column B = Image Stack Group for that row (e.g. "main_image"). Each row can have a different group.',
+      'Columns C, D, E… = Image URLs in order. Column C = Order 1, D = Order 2, etc.',
+      'Save the file and upload it here — ImageStack_Import_Template.xlsx downloads automatically.',
+      'To get real filenames (e.g. P0SEBEWS_163797C01-48_US_ISP01.jpg) you need to run the fixer server:',
+      'Download image_stack_server.py from the hub, then run: pip install flask requests openpyxl',
+      'Then run: python image_stack_server.py — your browser opens automatically at localhost:5001',
+      'Upload the ImageStack_Import_Template.xlsx there → click Process → download ImageStack_Import_Final.xlsx',
+      'All temp files are auto-deleted after download. Press Ctrl+C to stop the server when done.'
+    ]
+  }
+];
+
+/* ── ICONS ─────────────────────────────────────────────────── */
+const ICONS = {
+  'ic-blue':  '<path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>',
+  'ic-cyan':  '<path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>',
+  'ic-green': '<path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/>',
+  'ic-amber': '<path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>',
+  default:    '<path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>',
+};
+const CI = {Operations:'ic-blue',Finance:'ic-green',HR:'ic-amber',Reports:'ic-cyan',Other:'ic-blue'};
+const CC = {Operations:'c-blue',Finance:'c-green',HR:'c-amber',Reports:'c-cyan',Other:'c-blue'};
+
+let macros = JSON.parse(JSON.stringify(MACROS));
+let atab   = 'All';
+let curM   = null;
+let upFile = null;
+
+/* ── RENDER ─────────────────────────────────────────────────── */
+function rt() {
+  const cats = ['All',...new Set(macros.map(m=>m.cat))];
+  document.getElementById('ftabs').innerHTML =
+    cats.map(c=>`<button class="tab ${atab===c?'act':''}" onclick="st('${c}')">${c}</button>`).join('');
+}
+function rc() {
+  const q = document.getElementById('srch').value.toLowerCase();
+  const f = macros.filter(m=>(atab==='All'||m.cat===atab)&&(!q||m.title.toLowerCase().includes(q)||m.desc.toLowerCase().includes(q)));
+  const g = document.getElementById('mgrid');
+  g.innerHTML = f.length ? f.map(m=>`
+    <div class="mc ${m.color}">
+      <div class="mc-head">
+        <div class="mc-icon ${m.icon}"><svg viewBox="0 0 24 24">${ICONS[m.icon]||ICONS.default}</svg></div>
+        <span class="mc-badge ${m.badge==='new'?'b-new':'b-act'}">${m.badge==='new'?'NEW':'ACTIVE'}</span>
+      </div>
+      <div class="mc-title">${esc(m.title)}</div>
+      <div class="mc-desc">${esc(m.desc)}</div>
+      <div class="mc-meta"><span>📁 ${esc(m.cat)}</span><span>${(m.instructions||[]).length} steps</span></div>
+      <div class="mc-foot">
+        <a class="cbtn c-dl" href="${m.templateUrl}" target="_blank" onclick="event.stopPropagation()">↓ Template</a>
+        <button class="cbtn c-run" onclick="orun(${m.id})">Run →</button>
+      </div>
+    </div>`).join('')
+  : `<div class="empty"><div class="eico">🔍</div><p>No tools found.</p><button onclick="om('addOv')">+ Add Tool</button></div>`;
+
+}
+function st(v){ atab=v; rt(); rc(); }
+
+/* ── RUN MODAL ──────────────────────────────────────────────── */
+function orun(id) {
+  curM = macros.find(x=>x.id===id);
+  if(!curM) return;
+  upFile=null;
+  document.getElementById('ffi').value='';
+  spp(0); cls();
+  document.getElementById('pw').classList.remove('on');
+  document.getElementById('pb').style.width='0%';
+  document.getElementById('rT').textContent=curM.title;
+  document.getElementById('rS').textContent=curM.cat+' · '+(curM.badge==='new'?'New':'Active');
+  document.getElementById('rI').innerHTML=
+    `<div class="ibt">Step-by-step instructions</div>`+
+    (curM.instructions||[]).map((s,i)=>`<div class="ist"><div class="isn">${i+1}</div><span>${esc(s)}</span></div>`).join('');
+  const dl=document.getElementById('dlbtn');
+  dl.href=curM.templateUrl||'#';
+  dl.innerHTML = (curM.templateUrl&&curM.templateUrl!=='#')
+    ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download Template (.xlsx)`
+    : '⚠ Template URL not set — contact admin';
+  const b=document.getElementById('procB');
+  b.textContent='Process & Download →'; b.className='mb mb-g'; b.disabled=true;
+
+  // Show backend status banner for tools that need Python backend
+  const banner = document.getElementById('backendBanner');
+  if (curM.processFn === 'buildImageStackImportTemplate') {
+    banner.style.display = 'block';
+    banner.style.background = 'rgba(43,110,245,.07)';
+    banner.style.borderColor = 'rgba(43,110,245,.25)';
+    banner.style.color = 'var(--pat-blue-lt)';
+    banner.textContent = '⏳ Checking Python backend status…';
+    checkBackend().then(ok => {
+      if (ok) {
+        banner.style.background = 'rgba(0,196,140,.07)';
+        banner.style.borderColor = 'rgba(0,196,140,.25)';
+        banner.style.color = 'var(--pat-green)';
+        banner.textContent = '✓ Python backend is running — filenames will be resolved from CDN headers (100% accurate).';
+      } else {
+        banner.style.background = 'rgba(245,158,11,.07)';
+        banner.style.borderColor = 'rgba(245,158,11,.25)';
+        banner.style.color = '#F59E0B';
+        banner.innerHTML =
+          '⚠ Python backend not detected. Filenames for CDN UUID-style URLs will not be accurate.<br>' +
+          'For correct filenames: run <strong>start_backend.bat</strong> (Windows) or <strong>start_backend.sh</strong> (Mac/Linux) then re-open this tool.';
+      }
+    });
+  } else {
+    banner.style.display = 'none';
+  }
+
+  om('runOv');
+}
+function sp(n){ spp(n); }
+function spp(a){ for(let i=1;i<=4;i++){ const e=document.getElementById('pi'+i); e.className='pill'; if(i<a+1) e.classList.add('pd'); else if(i===a+1) e.classList.add('pc'); } }
+
+/* ── FILE ───────────────────────────────────────────────────── */
+function ofc(inp){ if(inp.files[0]) recv(inp.files[0]); }
+function odrop(e){
+  e.preventDefault();
+  document.getElementById('upz').classList.remove('drag');
+  if(e.dataTransfer.files[0]) recv(e.dataTransfer.files[0]);
+}
+function recv(f){
+  const ext=f.name.split('.').pop().toLowerCase();
+  if(!['xlsx','xls'].includes(ext)){ sst('e','Please upload an .xlsx file.'); return; }
+  upFile=f; spp(1);
+  sst('i',`✓  "${f.name}" loaded — click Process & Download to run.`);
+  const b=document.getElementById('procB');
+  b.disabled=false; b.textContent='Process & Download →'; b.className='mb mb-g';
+}
+
+/* ── PROCESS ────────────────────────────────────────────────── */
+async function doProc(){
+  if(!upFile||!curM) return;
+  const fn=curM.processFn;
+  if(!fn||typeof window[fn]!=='function'){ sst('e','Processing engine not found. Contact admin.'); return; }
+  spp(2); spw(true); pct(10); cls();
+  const b=document.getElementById('procB');
+  b.disabled=true; b.textContent='Processing…';
+  const reader=new FileReader();
+  reader.onload= async e=>{
+    try{
+      pct(35);
+      const inWb=XLSX.read(new Uint8Array(e.target.result),{type:'array',raw:false});
+      pct(60);
+      // All tools are awaited (sync tools resolve immediately; async Python tools run fully)
+      const outWb = await Promise.resolve(window[fn](inWb));
+      // Python tools handle their own download and return null — skip SheetJS write
+      if (outWb !== null && outWb !== undefined) {
+        pct(95);
+        XLSX.writeFile(outWb, curM.outputName||'Output.xlsx');
+      }
+      pct(100);
+      setTimeout(()=>spw(false),700);
+      spp(3);
+      sst('o','✓ Done! Output file downloaded. Open it in Excel and verify the output sheet before use.');
+      b.textContent='✓ Downloaded'; b.className='mb mb-d'; b.disabled=true;
+    } catch(err){
+      spw(false); spp(1);
+      sst('e','Error: '+err.message);
+      b.disabled=false; b.textContent='Retry →'; b.className='mb mb-g';
+    }
+  };
+  reader.onerror=()=>{ spw(false); sst('e','Failed to read the uploaded file.'); };
+  reader.readAsArrayBuffer(upFile);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   AU SELLERS DATA EXTRACTOR
+   Full port of the Office Script (TypeScript) reference code.
+   Input sheet: "Sheet 1" (or last non-Output sheet as fallback).
+   All original sheets preserved; Output sheet added/replaced last.
+══════════════════════════════════════════════════════════════ */
+function extractSellerPrices(inWb) {
+  /* 1. Find input sheet — "Sheet 1" by name, then last non-Output */
+  let inputName = inWb.SheetNames.find(n => n === 'Sheet 1');
+  if (!inputName) {
+    const cands = inWb.SheetNames.filter(n => n.toLowerCase() !== 'output');
+    inputName = cands[cands.length - 1] || inWb.SheetNames[0];
+  }
+  const wsIn = inWb.Sheets[inputName];
+  const vals = XLSX.utils.sheet_to_json(wsIn, {header:1, defval:'', raw:false});
+  if (!vals.length) throw new Error('The uploaded file appears to be empty.');
+
+  const rowCount = vals.length;
+  const colCount = vals[0].length;
+
+  /* 2. Last ASIN column */
+  let lastCol = -1;
+  for (let c = colCount-1; c >= 0; c--) {
+    if (String(vals[0][c]??'').trim() !== '') { lastCol=c; break; }
+  }
+  if (lastCol < 0) throw new Error('No ASINs found in Row 1 of Sheet 1.');
+
+  /* 3. Column layout (0-based, matches TS reference exactly) */
+  function compNameCol(idx)  { return idx===1 ? 1 : 5+(idx-2)*3; }
+  function compPriceCol(idx) { return compNameCol(idx)+1; }
+
+  /* 4. getOfferPrice */
+  function getOfferPrice(text) {
+    const t=String(text??'').trim(), tl=t.toLowerCase();
+    if (tl.includes('delivery')||tl.includes('shipping')||tl.includes('postage')) return '';
+    const m=t.match(/\$[\d.,]+/g);
+    if (!m||!m.length) return '';
+    if (m.length>=2) return m[0].replace('$','').replace(/,/g,'');
+    if (t.startsWith('$')&&!tl.includes('per')) return m[0].replace('$','').replace(/,/g,'');
+    return '';
+  }
+
+  /* 5. isSellerMarker */
+  function isSellerMarker(v) {
+    const tl=String(v??'').trim().toLowerCase();
+    return tl==='sold by'||tl==='sold by:'||tl==='shipper / seller'||
+           tl==='shipper/seller'||tl.startsWith('sold by:');
+  }
+
+  /* 6. getSellerName */
+  function getSellerName(cellVal, r, col) {
+    const tl=String(cellVal??'').trim().toLowerCase();
+    if (tl.startsWith('sold by:')) return String(cellVal).substring(8).trim();
+    if (r+1<vals.length) return String(vals[r+1][col]??'').trim();
+    return '';
+  }
+
+  /* 7. Build output */
+  const outData=[['ASIN']];
+  const hdrDone=new Set();
+
+  function ensureCompHeaders(idx) {
+    if (hdrDone.has(idx)) return;
+    hdrDone.add(idx);
+    const nc=compNameCol(idx), pc=compPriceCol(idx);
+    while (outData[0].length<=pc) outData[0].push('');
+    outData[0][nc]=`Competitor ${idx} Name`;
+    outData[0][pc]=`Competitor ${idx} Price (in $)`;
+    if (idx===1) { if (!outData[0][pc+1]) outData[0][pc+1]=''; if (!outData[0][pc+2]) outData[0][pc+2]=''; }
+    else { if (!outData[0][pc+1]) outData[0][pc+1]=''; }
+  }
+
+  let rowOut=0;
+
+  for (let col=0; col<=lastCol; col++) {
+    const asin=String(vals[0][col]??'').trim();
+    if (!asin) continue;
+    rowOut++;
+
+    let lastRowCol=0;
+    for (let r=rowCount-1; r>=0; r--) {
+      if (String(vals[r][col]??'').trim()!=='') { lastRowCol=r; break; }
+    }
+
+    let compCounter=0, pendingPrice='', lastOfferPrice='';
+    let noFeatured=false, comp1Reserved=false;
+    let inSubscribe=false, inOneTime=false, oneTimePrice='';
+    const outRow=[''];
+    outRow[0]=asin;
+
+    for (let r=1; r<=lastRowCol; r++) {
+      const rawCell=String(vals[r][col]??'');
+      const cellVal=rawCell.trim();
+      const cvl=cellVal.toLowerCase();
+
+      if (cvl.includes("didn't find what you were looking for")||cvl.includes("consider these alternative items")) break;
+      if (cvl.includes('no featured offers available')) noFeatured=true;
+      if (cvl.includes('subscribe & save')||cvl.includes('subscribe and save')) { inSubscribe=true; inOneTime=false; }
+      if (cvl.includes('one-time purchase')||cvl.includes('one time purchase')) { inOneTime=true; inSubscribe=false; }
+      if (inOneTime) { const c=getOfferPrice(rawCell); if(c) oneTimePrice=c; }
+      if (!inSubscribe) { const c=getOfferPrice(rawCell); if(c) lastOfferPrice=c; }
+      if (cvl==='new'&&!inSubscribe&&r+1<rowCount) {
+        const c=getOfferPrice(String(vals[r+1][col]??''));
+        if (c) { pendingPrice=c; lastOfferPrice=c; }
+      }
+
+      if (isSellerMarker(cellVal)) {
+        const seller=getSellerName(cellVal,r,col);
+        if (!seller) continue;
+        if (oneTimePrice!==''&&!inOneTime) continue;
+        compCounter++;
+        let outIndex;
+        if (noFeatured) {
+          if (!comp1Reserved) { ensureCompHeaders(1); comp1Reserved=true; }
+          outIndex=compCounter+1;
+        } else { outIndex=compCounter; }
+        ensureCompHeaders(outIndex);
+        const nc=compNameCol(outIndex), pc=compPriceCol(outIndex);
+        while (outRow.length<=pc) outRow.push('');
+        outRow[nc]=seller;
+        if (oneTimePrice!=='') { outRow[pc]=Number(oneTimePrice); break; }
+        else if (pendingPrice!=='') outRow[pc]=Number(pendingPrice);
+        else if (lastOfferPrice!=='') outRow[pc]=Number(lastOfferPrice);
+        else outRow[pc]='';
+        pendingPrice=''; lastOfferPrice='';
+      }
+    }
+    outData.push(outRow);
+  }
+
+  /* Pad rows */
+  const w=outData[0].length;
+  for (let i=1;i<outData.length;i++) while (outData[i].length<w) outData[i].push('');
+
+  /* Build worksheet */
+  const wsOut=XLSX.utils.aoa_to_sheet(outData);
+  wsOut['!cols']=[{wch:14},...Array(w-1).fill({wch:18})];
+  for (let c=0;c<w;c++){
+    const addr=XLSX.utils.encode_cell({r:0,c});
+    if (!wsOut[addr]) continue;
+    wsOut[addr].s={font:{bold:true}};
+    if (c===0) wsOut[addr].s.fill={patternType:'solid',fgColor:{rgb:'FFFF99'}};
+    else {
+      for (let idx=1;idx<=60;idx++){
+        if (c===compNameCol(idx)||c===compPriceCol(idx)){
+          wsOut[addr].s.fill={patternType:'solid',fgColor:{rgb:idx%2===1?'C6EFCE':'DDEBF7'}};
+          break;
+        }
+      }
+    }
+  }
+
+  /* Assemble: preserve originals, add Output last */
+  const outWb=XLSX.utils.book_new();
+  for (const sn of inWb.SheetNames) {
+    if (sn.toLowerCase()==='output') continue;
+    XLSX.utils.book_append_sheet(outWb,inWb.Sheets[sn],sn);
+  }
+  XLSX.utils.book_append_sheet(outWb,wsOut,'Output');
+  return outWb;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   MEDIA STACK OUTPUTS BUILDER
+   ──────────────────────────────────────────────────────────────
+   Exact port of VBA BuildMediaStackOutputs / BuildPerGroupSheets.
+
+   Input workbook must contain two sheets:
+     • "Media Stacks"      — source data with headers in Row 1
+         Required: Collection Folder, Media Stack Group,
+                   Media Stack Order, Media Thumb, Preview
+     • "List of Master ID" — Master IDs in Column A from Row 2
+
+   Output workbook:
+     • All original sheets preserved (Media Stacks + List of
+       Master ID copied through unchanged).
+     • One NEW sheet added per unique Media Stack Group value.
+       Each group sheet layout:
+         Col A  = Master ID  (all IDs from List of Master ID, sorted)
+         Col B  = Comments   ("Media stack not found" if no images)
+         Col C+ = Image URL 1, Image URL 2, … N
+       Post-processing: "_thumb.png" stripped from all URL cells.
+       Cell style: red font for "Media stack not found" rows.
+══════════════════════════════════════════════════════════════ */
+function buildMediaStackOutputs(inWb) {
+
+  /* ── 1. Locate required sheets ───────────────────────────── */
+  const msName   = inWb.SheetNames.find(n => n === 'Media Stacks');
+  const listName = inWb.SheetNames.find(n => n === 'List of Master ID');
+
+  if (!msName)   throw new Error("Sheet 'Media Stacks' not found. Please check the template.");
+  if (!listName) throw new Error("Sheet 'List of Master ID' not found. Please check the template.");
+
+  const wsSrc  = inWb.Sheets[msName];
+  const wsList = inWb.Sheets[listName];
+
+  /* ── 2. Read header row of Media Stacks to find column indices ── */
+  const srcRows = XLSX.utils.sheet_to_json(wsSrc,  {header:1, defval:'', raw:false});
+  const lstRows = XLSX.utils.sheet_to_json(wsList, {header:1, defval:'', raw:false});
+
+  if (!srcRows.length) throw new Error("'Media Stacks' sheet is empty.");
+  if (!lstRows.length) throw new Error("'List of Master ID' sheet is empty.");
+
+  const hdr = srcRows[0].map(v => String(v ?? '').trim());
+
+  function colIdx(name) {
+    const i = hdr.findIndex(h => h.toLowerCase() === name.toLowerCase());
+    if (i < 0) throw new Error(`Required column "${name}" not found in Media Stacks headers.`);
+    return i;
+  }
+  const colFolder  = colIdx('Collection Folder');
+  const colGroup   = colIdx('Media Stack Group');
+  const colOrder   = colIdx('Media Stack Order');
+  const colThumb   = hdr.findIndex(h => h.toLowerCase() === 'media thumb');   // optional
+  const colPreview = hdr.findIndex(h => h.toLowerCase() === 'preview');       // optional fallback
+
+  /* ── 3. Read Master IDs from List of Master ID (col A, row 2+) ── */
+  const expectedIDs = new Set();
+  for (let r = 1; r < lstRows.length; r++) {
+    const id = String(lstRows[r][0] ?? '').trim();
+    if (id) expectedIDs.add(id);
+  }
+  if (!expectedIDs.size) throw new Error("No Master IDs found in 'List of Master ID'!A2+. Please add at least one.");
+
+  /* ── 4. Build lookup map and group metadata from Media Stacks ── */
+  // mapMGO: "folderID||group||order" -> url
+  const mapMGO          = new Map();
+  // setGroups: group name -> true
+  const setGroups       = new Set();
+  // maxOrderByGroup: group -> max order number seen
+  const maxOrderByGroup = new Map();
+
+  for (let r = 1; r < srcRows.length; r++) {
+    const row  = srcRows[r];
+    const mID  = String(row[colFolder]  ?? '').trim();
+    const grp  = String(row[colGroup]   ?? '').trim();
+    const ordRaw = row[colOrder];
+    if (!mID || !grp) continue;
+
+    const ordNum = Number(ordRaw);
+    if (!isFinite(ordNum) || ordNum <= 0) continue;
+    const ord = Math.round(ordNum);
+
+    // URL priority: Media Thumb first, Preview as fallback
+    let url = colThumb   >= 0 ? String(row[colThumb]   ?? '').trim() : '';
+    if (!url && colPreview >= 0) url = String(row[colPreview] ?? '').trim();
+    if (!url) continue;
+
+    setGroups.add(grp);
+
+    const key = `${mID}||${grp}||${ord}`;
+    if (!mapMGO.has(key)) mapMGO.set(key, url);
+
+    const prev = maxOrderByGroup.get(grp) ?? 0;
+    if (ord > prev) maxOrderByGroup.set(grp, ord);
+  }
+
+  if (!setGroups.size) throw new Error("No valid group data found in 'Media Stacks'. Check your data rows.");
+
+  /* ── 5. Sort Master IDs (mirrors VBA DictKeysSorted / QuickSort) ── */
+  const masterIDs = [...expectedIDs].sort((a, b) => a < b ? -1 : a > b ? 1 : 0);
+
+  /* ── 6. Sanitise sheet name (mirrors VBA SanitizeSheetName) ─── */
+  function sanitiseName(nm) {
+    nm = String(nm).trim().replace(/[\[\]:*?/\\'"]/g, '_');
+    if (!nm) nm = 'Sheet';
+    return nm.slice(0, 31);
+  }
+
+  /* ── 7. Build output workbook ────────────────────────────── */
+  const outWb     = XLSX.utils.book_new();
+  const usedNames = new Set(['Media Stacks', 'List of Master ID']);
+
+  // Copy original sheets first
+  for (const sn of inWb.SheetNames) {
+    XLSX.utils.book_append_sheet(outWb, inWb.Sheets[sn], sn);
+  }
+
+  // One sheet per group
+  for (const grp of setGroups) {
+    let sheetName = sanitiseName(grp);
+    // Ensure unique name
+    if (usedNames.has(sheetName)) {
+      let n = 2;
+      let candidate = `${sheetName.slice(0, 28)}_${n}`;
+      while (usedNames.has(candidate)) { n++; candidate = `${sheetName.slice(0, 28)}_${n}`; }
+      sheetName = candidate;
+    }
+    usedNames.add(sheetName);
+
+    const maxOrd = Math.max(maxOrderByGroup.get(grp) ?? 1, 1);
+
+    // Build array-of-arrays for this sheet
+    // Row 0 = headers
+    const hdrRow = ['Master ID', 'Comments'];
+    for (let i = 1; i <= maxOrd; i++) hdrRow.push(`Image URL ${i}`);
+
+    const sheetData = [hdrRow];
+
+    for (const mID of masterIDs) {
+      const dataRow = new Array(2 + maxOrd).fill('');
+      dataRow[0] = mID;
+
+      let hasLinks = false;
+      for (let ord = 1; ord <= maxOrd; ord++) {
+        const key = `${mID}||${grp}||${ord}`;
+        if (mapMGO.has(key)) {
+          let url = mapMGO.get(key);
+          // Strip _thumb.png (mirrors VBA Replace cleanup)
+          url = url.replace(/_thumb\.png/gi, '');
+          dataRow[1 + ord] = url;
+          if (url) hasLinks = true;
+        }
+      }
+
+      if (!hasLinks) dataRow[1] = 'Media stack not found';
+      sheetData.push(dataRow);
+    }
+
+    // Create worksheet
+    const ws = XLSX.utils.aoa_to_sheet(sheetData);
+
+    // Column widths = 10 for all cols (matches VBA ColumnWidth = 10)
+    ws['!cols'] = Array(2 + maxOrd).fill({wch: 15});
+
+    // Header row bold + light blue fill
+    for (let c = 0; c < hdrRow.length; c++) {
+      const addr = XLSX.utils.encode_cell({r:0, c});
+      if (!ws[addr]) continue;
+      ws[addr].s = {
+        font: {bold: true},
+        fill: {patternType:'solid', fgColor:{rgb:'BDD7EE'}}
+      };
+    }
+
+    // Red font for "Media stack not found" cells (col B, rows 2+)
+    for (let r = 1; r < sheetData.length; r++) {
+      if (sheetData[r][1] === 'Media stack not found') {
+        const addr = XLSX.utils.encode_cell({r, c:1});
+        if (!ws[addr]) ws[addr] = {t:'s', v:'Media stack not found'};
+        ws[addr].s = {font: {color:{rgb:'FF0000'}}};
+      }
+    }
+
+    XLSX.utils.book_append_sheet(outWb, ws, sheetName);
+  }
+
+  return outWb;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   IMAGE STACK IMPORT TEMPLATE BUILDER  (v3 — Python backend)
+   ──────────────────────────────────────────────────────────────
+   WHY A BACKEND IS NEEDED:
+   The Pattern CDN (cdn.amplifi.pattern.com) returns the real
+   filename in the Content-Disposition response header, e.g.:
+     Content-Disposition: inline; filename="P0SEBEWS_163797C01.jpg"
+   A browser JS fetch() cannot read this header from a different
+   origin (CORS blocks it). Python's requests.head() has no such
+   restriction, so we route filename resolution through the local
+   Flask backend (app.py).
+
+   TWO MODES:
+   ① Backend mode  — if http://localhost:5000 is reachable,
+     the entire file (upload → resolve → download) is handled
+     server-side by /api/process-image-stack. Filenames are 100%
+     accurate (real Content-Disposition values).
+   ② Fallback mode — backend not running; files are processed
+     in-browser using URL-path extraction (same as before).
+     Filenames may be UUIDs for CDN URLs — user is warned.
+
+   Start the backend: python app.py   (or start_backend.bat/sh)
+══════════════════════════════════════════════════════════════ */
+
+/* Backend base URL — change port if needed */
+const BACKEND_URL = 'https://pattern-macro-tool.onrender.com';
+let backendAvailable = null; // null=unchecked, true/false after check
+
+async function checkBackend() {
+  if (backendAvailable !== null) return backendAvailable;
+  try {
+    const r = await fetch(`${BACKEND_URL}/api/health`, {signal: AbortSignal.timeout(2000)});
+    backendAvailable = r.ok;
+  } catch(_) {
+    backendAvailable = false;
+  }
+  return backendAvailable;
+}
+
+async function buildImageStackImportTemplate(inWb) {
+
+  /* ── Show progress message ──────────────────────────────── */
+  sst('i', '⏳ Checking for Python backend…');
+
+  const hasBackend = await checkBackend();
+
+  /* ══════════════════════════════════════════════════════════
+     MODE ①: Backend available — send file to /api/process-image-stack
+             Python resolves all filenames via HEAD requests.
+  ══════════════════════════════════════════════════════════ */
+  if (hasBackend) {
+    sst('i', '✓ Backend detected — resolving real filenames via CDN headers…');
+
+    // Re-serialise the uploaded workbook to send to backend
+    const xlsxBytes = XLSX.write(inWb, {type: 'array', bookType: 'xlsx'});
+    const blob      = new Blob([new Uint8Array(xlsxBytes)], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    });
+    const formData  = new FormData();
+    formData.append('file', blob, 'input.xlsx');
+
+    let resp;
+    try {
+      resp = await fetch(`${BACKEND_URL}/api/process-image-stack`, {
+        method: 'POST', body: formData
+      });
+    } catch(e) {
+      throw new Error('Backend request failed: ' + e.message);
+    }
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({error: 'Unknown backend error'}));
+      throw new Error(err.error || 'Backend processing failed');
+    }
+
+    // Download the returned xlsx directly
+    const outBlob = await resp.blob();
+    const a = Object.assign(document.createElement('a'), {
+      href: URL.createObjectURL(outBlob),
+      download: 'ImageStack_Import_Template.xlsx'
+    });
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(a.href), 15000);
+
+    sst('o', '✓ Done! Filenames resolved from CDN headers. File downloaded.');
+    return null; // Signal to doProc() that download was handled
+  }
+
+  /* ══════════════════════════════════════════════════════════
+     MODE ②: No backend — process in-browser (URL path fallback).
+             Warn user that CDN UUID URLs will not resolve to real names.
+  ══════════════════════════════════════════════════════════ */
+  sst('w',
+    '⚠ Python backend not detected — processing in browser. ' +
+    'Filenames for CDN UUID-style URLs may not be accurate. ' +
+    'Start app.py for correct filenames.'
+  );
+
+  /* ── Locate "Image Links" sheet ─────────────────────────── */
+  const srcName = inWb.SheetNames.find(n => n === 'Image Links');
+  if (!srcName) throw new Error("Sheet 'Image Links' not found.");
+
+  const srcRows = XLSX.utils.sheet_to_json(
+    inWb.Sheets[srcName], {header:1, defval:'', raw:false}
+  );
+  if (srcRows.length < 2)
+    throw new Error("No data rows in 'Image Links'. Add data from Row 2.");
+
+  /* ── Filename helpers ─────────────────────────────────────── */
+  function sanitize(s) {
+    s = String(s ?? '');
+    ['\\','/',':','*','?','"','<','>','|'].forEach(ch => { s = s.split(ch).join('_'); });
+    while (s.endsWith(' ') || s.endsWith('.')) s = s.slice(0,-1);
+    return s || 'download';
+  }
+  function pathFallback(url) {
+    let u = String(url ?? '').trim();
+    const q = u.indexOf('?'); if (q>-1) u=u.slice(0,q);
+    const h = u.indexOf('#'); if (h>-1) u=u.slice(0,h);
+    const seg = u.slice(u.lastIndexOf('/')+1);
+    try { return sanitize(decodeURIComponent(seg)) || url; }
+    catch(_) { return sanitize(seg) || url; }
+  }
+
+  /* ── Build output rows ────────────────────────────────────── */
+  const outHeaders = [
+    'Import Type','Collection Folder','Image Stack Group',
+    'Filename','Image Stack Order'
+  ];
+  const outData = [outHeaders];
+
+  for (let r = 1; r < srcRows.length; r++) {
+    const row      = srcRows[r];
+    const masterID = String(row[0] ?? '').trim();
+    const grp      = String(row[1] ?? '').trim();
+    if (!masterID || !grp) continue;
+    for (let c = 2; c < row.length; c++) {
+      const url = String(row[c] ?? '').trim();
+      if (!url) continue;
+      outData.push(['Create/Edit', masterID, grp, pathFallback(url), c - 1]);
+    }
+  }
+
+  if (outData.length < 2)
+    throw new Error('No URLs found. Col A=Master ID, Col B=Stack Group, Col C+=URLs.');
+
+  /* ── Build output workbook ────────────────────────────────── */
+  const outWb = XLSX.utils.book_new();
+  const outSN = 'Image Stack Import Template';
+  for (const sn of inWb.SheetNames) {
+    if (sn === outSN) continue;
+    XLSX.utils.book_append_sheet(outWb, inWb.Sheets[sn], sn);
+  }
+  const wsOut = XLSX.utils.aoa_to_sheet(outData);
+  wsOut['!cols'] = [{wch:14},{wch:22},{wch:26},{wch:48},{wch:18}];
+  for (let c = 0; c < 5; c++) {
+    const addr = XLSX.utils.encode_cell({r:0,c});
+    if (!wsOut[addr]) continue;
+    wsOut[addr].s = {font:{bold:true}, fill:{patternType:'solid',fgColor:{rgb:'BDD7EE'}}};
+  }
+  XLSX.utils.book_append_sheet(outWb, wsOut, outSN);
+  return outWb;
+}
+
+
+
+/* ── ADD TOOL ───────────────────────────────────────────────── */
+function addM(){
+  const name=document.getElementById('fN').value.trim();
+  if(!name){alert('Please enter a tool name.');return;}
+  const cat=document.getElementById('fCt').value;
+  macros.push({
+    id:Date.now(), title:name,
+    desc:document.getElementById('fD').value.trim()||'No description provided.',
+    color:document.getElementById('fCo').value,
+    icon:CI[cat]||'ic-blue', cat, badge:'new',
+    templateUrl:document.getElementById('fU').value.trim()||'#',
+    outputName:name.replace(/\s+/g,'_')+'_Output.xlsx',
+    processFn:'',
+    instructions:document.getElementById('fIn').value.trim().split('\n').filter(Boolean)
+  });
+  cm('addOv');
+  ['fN','fD','fU','fIn'].forEach(id=>document.getElementById(id).value='');
+  rt(); rc();
+}
+
+/* ── HELPERS ────────────────────────────────────────────────── */
+function om(id)   { document.getElementById(id).classList.add('show'); }
+function cm(id)   { document.getElementById(id).classList.remove('show'); }
+function ovc(e,id){ if(e.target===document.getElementById(id)) cm(id); }
+function sst(t,m){
+  cls();
+  const mp={i:'si',o:'so',e:'se',w:'sw'};
+  const el=document.getElementById(mp[t]);
+  el.textContent=m; el.classList.add('on');
+}
+function cls(){ ['si','so','se','sw'].forEach(id=>{const e=document.getElementById(id);e.classList.remove('on');e.textContent='';}); }
+function spw(on){ document.getElementById('pw').classList[on?'add':'remove']('on'); }
+function pct(p)  { document.getElementById('pb').style.width=p+'%'; }
+function esc(s)  { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+/* ── INIT ───────────────────────────────────────────────────── */
+rt(); rc();
+</script>
+<!-- Server script stored as raw text — read by JS via textContent -->
+<script type="text/python-template" id="imageStackServerScript">
+#!/usr/bin/env python3
+"""
+image_stack_server.py  —  Pattern Data Processing Automation Tool
+==================================================================
+A self-contained local web server that:
+  1. Accepts an uploaded  ImageStack_Import_Template.xlsx
+  2. Fetches real filenames from the Pattern CDN via HEAD requests
+     (Content-Disposition header) — 10 concurrent threads
+  3. Returns  ImageStack_Import_Final.xlsx  for immediate download
+  4. Cleans up ALL temporary files automatically after each job
+
+REQUIREMENTS
+    pip install flask requests openpyxl
+
+USAGE
+    python image_stack_server.py
+    Then open:  http://localhost:5001
+    Press Ctrl+C to stop the server when done.
+
+NO FILES are stored on disk after you download the result.
+Temp files are deleted immediately after the download completes.
+"""
+
+import io
+import os
+import re
+import sys
+import time
+import uuid
+import threading
+import webbrowser
+from pathlib import Path
+from urllib.parse import unquote, urlparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+# ── Check dependencies ────────────────────────────────────────
+try:
+    import requests
+    from openpyxl import load_workbook
+    from openpyxl.styles import Font, PatternFill
+    from flask import Flask, request, send_file, jsonify, render_template_string
+except ImportError as e:
+    print(f"\n[ERROR] Missing package: {e}")
+    print("Run:  pip install flask requests openpyxl\n")
+    sys.exit(1)
+
+# ── Config ────────────────────────────────────────────────────
+PORT         = 5001
+MAX_WORKERS  = 12
+TIMEOUT      = 15
+SHEET_NAME   = "Image Stack Import Template"
+FILENAME_COL = 4   # Column D (1-based)
+
+UA = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122 Safari/537.36"
+)
+CDN_HEADERS = {
+    "User-Agent": UA,
+    "Accept": "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+}
+
+# In-memory job store: job_id -> {"status", "progress", "result_bytes", "error"}
+jobs: dict[str, dict] = {}
+jobs_lock = threading.Lock()
+
+# ── Filename helpers ──────────────────────────────────────────
+def sanitize(s: str) -> str:
+    for ch in ['\\', '/', ':', '*', '?', '"', '<', '>', '|']:
+        s = s.replace(ch, '_')
+    return s.rstrip(' .') or 'download'
+
+def path_fallback(url: str) -> str:
+    seg = urlparse(url).path.rstrip('/').rsplit('/', 1)[-1]
+    return sanitize(unquote(seg)) or 'download'
+
+def parse_content_disposition(header: str) -> str:
+    if not header:
+        return ''
+    m = re.search(r"filename\*\s*=\s*\S+''([^;\s]+)", header, re.I)
+    if m:
+        return sanitize(unquote(m.group(1)))
+    m = re.search(r'filename\s*=\s*"([^"]+)"', header, re.I)
+    if m:
+        return sanitize(m.group(1))
+    m = re.search(r'filename\s*=\s*([^;\s]+)', header, re.I)
+    if m:
+        return sanitize(m.group(1))
+    return ''
+
+def fetch_filename(url: str) -> str:
+    try:
+        r = requests.head(url, headers=CDN_HEADERS,
+                          timeout=TIMEOUT, allow_redirects=True)
+        fn = parse_content_disposition(r.headers.get('Content-Disposition', ''))
+        return fn or path_fallback(url)
+    except Exception:
+        return path_fallback(url)
+
+# ── Background processing job ─────────────────────────────────
+def process_job(job_id: str, file_bytes: bytes) -> None:
+    def upd(progress: int, status: str) -> None:
+        with jobs_lock:
+            jobs[job_id]['progress'] = progress
+            jobs[job_id]['status']   = status
+
+    try:
+        upd(5, 'Reading uploaded file…')
+        wb = load_workbook(io.BytesIO(file_bytes))
+
+        if SHEET_NAME not in wb.sheetnames:
+            raise ValueError(
+                f"Sheet '{SHEET_NAME}' not found. "
+                "Please upload ImageStack_Import_Template.xlsx."
+            )
+
+        ws = wb[SHEET_NAME]
+
+        # Collect unique CDN URLs from Column D
+        url_to_rows: dict[str, list[int]] = {}
+        for rn in range(2, ws.max_row + 1):
+            v = ws.cell(row=rn, column=FILENAME_COL).value
+            if v and str(v).strip().startswith('http'):
+                url_to_rows.setdefault(str(v).strip(), []).append(rn)
+
+        unique = list(url_to_rows)
+        total  = len(unique)
+
+        if total == 0:
+            raise ValueError(
+                'No CDN URLs found in Column D. '
+                'Make sure you uploaded the output from the browser tool.'
+            )
+
+        upd(10, f'Fetching real filenames for {total} unique CDN URLs…')
+
+        cache: dict[str, str] = {}
+        done  = 0
+
+        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as pool:
+            futs = {pool.submit(fetch_filename, u): u for u in unique}
+            for fut in as_completed(futs):
+                url        = futs[fut]
+                cache[url] = fut.result()
+                done      += 1
+                pct = 10 + int((done / total) * 75)
+                upd(pct, f'Resolving filenames… {done} / {total}')
+
+        upd(88, 'Updating workbook…')
+
+        rows_updated = 0
+        for url, row_nums in url_to_rows.items():
+            fn = cache.get(url) or path_fallback(url)
+            for rn in row_nums:
+                ws.cell(row=rn, column=FILENAME_COL).value = fn
+                rows_updated += 1
+
+        upd(95, f'Saving output ({rows_updated} rows updated)…')
+
+        buf = io.BytesIO()
+        wb.save(buf)
+        buf.seek(0)
+        result_bytes = buf.read()
+
+        with jobs_lock:
+            jobs[job_id]['result_bytes'] = result_bytes
+            jobs[job_id]['progress']     = 100
+            jobs[job_id]['status']       = 'done'
+            jobs[job_id]['row_count']    = rows_updated
+            jobs[job_id]['url_count']    = total
+
+    except Exception as e:
+        with jobs_lock:
+            jobs[job_id]['status'] = 'error'
+            jobs[job_id]['error']  = str(e)
+
+# ── Flask app ─────────────────────────────────────────────────
+app = Flask(__name__)
+app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50 MB
+
+# ── HTML UI (single-page, no external files) ─────────────────
+UI_HTML = r"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Image Stack Filename Fixer — Pattern</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --navy:#0A0F1E; --card:#141b27; --deep:#0f1520;
+    --bd:#1e2530; --bdm:#2d3748;
+    --blue:#2B6EF5; --blt:#4D8BFF; --bdk:#1A4FCC;
+    --bbg:rgba(43,110,245,.1); --bbd:rgba(43,110,245,.35);
+    --grn:#00C48C; --gbg:rgba(0,196,140,.1); --gbd:rgba(0,196,140,.3);
+    --amb:#F59E0B; --abg:rgba(245,158,11,.08); --abd:rgba(245,158,11,.2);
+    --red:#EF4444; --rbg:rgba(239,68,68,.1); --rbd:rgba(239,68,68,.25);
+    --tx:#f1f5f9; --tm:#94a3b8; --tl:#64748b; --tx2:#475569;
+    --grad:linear-gradient(135deg,#2B6EF5 0%,#1A4FCC 60%,#0D2494 100%);
+  }
+  body{font-family:'Sora',sans-serif;background:var(--navy);color:var(--tx);min-height:100vh;
+       display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+       padding:40px 20px 60px}
+  body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+    background-image:linear-gradient(rgba(43,110,245,.04) 1px,transparent 1px),
+                     linear-gradient(90deg,rgba(43,110,245,.04) 1px,transparent 1px);
+    background-size:40px 40px}
+
+  .wrap{position:relative;z-index:1;width:100%;max-width:580px}
+
+  /* header */
+  .hdr{display:flex;align-items:center;gap:12px;margin-bottom:32px}
+  .logo{width:36px;height:36px;background:var(--grad);border-radius:9px;
+        display:flex;align-items:center;justify-content:center;flex-shrink:0;
+        box-shadow:0 0 20px rgba(43,110,245,.35)}
+  .logo svg{width:20px;height:20px}
+  .hdr-text{}
+  .hdr-name{font-size:16px;font-weight:700;color:#fff;letter-spacing:-.3px}
+  .hdr-sub{font-size:10px;color:var(--blt);letter-spacing:1.5px;
+           text-transform:uppercase;font-family:'IBM Plex Mono',monospace}
+
+  /* card */
+  .card{background:var(--card);border:1px solid var(--bdm);border-radius:16px;
+        padding:28px;position:relative;overflow:hidden}
+  .card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;
+                background:var(--grad)}
+  .card-title{font-size:18px;font-weight:700;color:#fff;margin-bottom:6px;letter-spacing:-.3px}
+  .card-sub{font-size:12px;color:var(--tl);margin-bottom:24px;line-height:1.5}
+
+  /* steps */
+  .steps{display:flex;gap:6px;margin-bottom:22px;align-items:center}
+  .step{flex:1;height:3px;border-radius:2px;background:var(--bd);transition:background .4s}
+  .step.done{background:var(--grn)}
+  .step.active{background:var(--blue)}
+
+  /* upload zone */
+  .upz{border:1.5px dashed var(--bdm);border-radius:12px;padding:36px 20px;text-align:center;
+       cursor:pointer;transition:all .18s;background:rgba(255,255,255,.02);margin-bottom:16px}
+  .upz:hover,.upz.drag{border-color:var(--blue);background:var(--bbg)}
+  .upz.has-file{border-color:var(--gbd);background:var(--gbg)}
+  .upz-icon{font-size:32px;margin-bottom:10px}
+  .upz-txt{font-size:13px;color:var(--tl);font-weight:500}
+  .upz-txt strong{color:var(--blt)}
+  .upz-txt.green{color:var(--grn)}
+  .upz-hint{font-size:11px;color:var(--tx2);margin-top:5px;
+            font-family:'IBM Plex Mono',monospace}
+
+  /* disclaimer */
+  .disc{background:var(--abg);border:1px solid var(--abd);border-radius:8px;
+        padding:10px 14px;margin-bottom:18px;font-size:11px;color:rgba(245,158,11,.9);
+        font-family:'IBM Plex Mono',monospace;line-height:1.5}
+
+  /* button */
+  .btn{width:100%;padding:13px;border-radius:10px;border:none;
+       font-family:'Sora',sans-serif;font-size:14px;font-weight:600;
+       cursor:pointer;transition:all .18s;letter-spacing:.3px}
+  .btn-blue{background:var(--grad);color:#fff;box-shadow:0 4px 18px rgba(43,110,245,.3)}
+  .btn-blue:hover:not(:disabled){box-shadow:0 4px 26px rgba(43,110,245,.5);transform:translateY(-1px)}
+  .btn-blue:disabled{background:#1e2530;color:var(--tl);cursor:not-allowed;box-shadow:none;transform:none}
+  .btn-grn{background:rgba(0,196,140,.15);border:1px solid var(--gbd);
+           color:var(--grn);box-shadow:0 4px 14px rgba(0,196,140,.15)}
+  .btn-grn:hover{box-shadow:0 4px 22px rgba(0,196,140,.3);transform:translateY(-1px)}
+
+  /* progress */
+  .prog-wrap{height:6px;background:var(--bd);border-radius:3px;
+             margin:14px 0;overflow:hidden;display:none}
+  .prog-wrap.show{display:block}
+  .prog-bar{height:100%;background:var(--grad);border-radius:3px;
+            width:0%;transition:width .3s}
+
+  /* status */
+  .status{font-size:12px;padding:9px 13px;border-radius:8px;
+          font-family:'IBM Plex Mono',monospace;line-height:1.4;
+          display:none;margin-top:12px}
+  .status.show{display:block}
+  .s-info{background:rgba(43,110,245,.12);color:var(--blt);border:1px solid var(--bbd)}
+  .s-ok{background:var(--gbg);color:var(--grn);border:1px solid var(--gbd)}
+  .s-err{background:var(--rbg);color:#fca5a5;border:1px solid var(--rbd)}
+
+  /* result panel */
+  .result{margin-top:18px;padding:16px;background:var(--deep);border:1px solid var(--gbd);
+          border-radius:12px;display:none}
+  .result.show{display:block}
+  .res-row{display:flex;justify-content:space-between;align-items:center;
+           margin-bottom:10px;font-size:12px;color:var(--tl)}
+  .res-row strong{color:var(--grn)}
+  .res-fname{font-family:'IBM Plex Mono',monospace;font-size:11px;
+             color:var(--blt);background:var(--bbg);padding:4px 8px;
+             border-radius:5px;margin-bottom:12px;word-break:break-all}
+
+  /* footer */
+  .footer{margin-top:24px;text-align:center;font-size:11px;color:var(--tx2);
+          font-family:'IBM Plex Mono',monospace}
+  .footer strong{color:var(--blt)}
+
+  ::-webkit-scrollbar{width:5px}
+  ::-webkit-scrollbar-thumb{background:var(--bdm);border-radius:3px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hdr">
+    <div class="logo">
+      <svg viewBox="0 0 36 28" fill="none">
+        <rect x="0" y="16" width="20" height="7" rx="3.5" fill="white" transform="rotate(-32 4 20)"/>
+        <rect x="14" y="6" width="20" height="7" rx="3.5" fill="white" opacity="0.75" transform="rotate(-32 18 10)"/>
+      </svg>
+    </div>
+    <div class="hdr-text">
+      <div class="hdr-name">Pattern Data Processing</div>
+      <div class="hdr-sub">Image Stack Filename Fixer</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Fix Filenames</div>
+    <div class="card-sub">
+      Upload your <strong style="color:#4D8BFF">ImageStack_Import_Template.xlsx</strong> —
+      the server fetches real filenames from the Pattern CDN and returns a clean,
+      import-ready file.
+    </div>
+
+    <!-- step indicators -->
+    <div class="steps">
+      <div class="step" id="s1"></div>
+      <div class="step" id="s2"></div>
+      <div class="step" id="s3"></div>
+    </div>
+
+    <!-- upload zone -->
+    <div class="upz" id="upz"
+         onclick="document.getElementById('fInput').click()"
+         ondragover="event.preventDefault();this.classList.add('drag')"
+         ondragleave="this.classList.remove('drag')"
+         ondrop="onDrop(event)">
+      <div class="upz-icon" id="upzIcon">📂</div>
+      <div class="upz-txt" id="upzTxt">
+        <strong>Click to upload</strong> or drag &amp; drop
+      </div>
+      <div class="upz-hint" id="upzHint">ImageStack_Import_Template.xlsx only</div>
+      <input type="file" id="fInput" style="display:none" accept=".xlsx,.xls"
+             onchange="onFile(this)"/>
+    </div>
+
+    <div class="disc">
+      ⚠ Temp files are <strong>auto-deleted</strong> after download.
+      Nothing is stored on disk permanently.
+    </div>
+
+    <button class="btn btn-blue" id="procBtn" onclick="startProcess()" disabled>
+      Process &amp; Download →
+    </button>
+
+    <div class="prog-wrap" id="progWrap">
+      <div class="prog-bar" id="progBar"></div>
+    </div>
+
+    <div class="status s-info" id="stInfo"></div>
+    <div class="status s-err"  id="stErr"></div>
+
+    <div class="result" id="resultBox">
+      <div class="res-row">
+        <span>URLs resolved</span>
+        <strong id="resUrls">-</strong>
+      </div>
+      <div class="res-row">
+        <span>Rows updated</span>
+        <strong id="resRows">-</strong>
+      </div>
+      <div class="res-fname" id="resFname"></div>
+      <button class="btn btn-grn" id="dlBtn" onclick="downloadResult()">
+        ↓ Download ImageStack_Import_Final.xlsx
+      </button>
+    </div>
+  </div>
+
+  <div class="footer">
+    Running at <strong>localhost:5001</strong> &nbsp;·&nbsp;
+    Press <strong>Ctrl+C</strong> in terminal to stop &nbsp;·&nbsp;
+    Designed by <strong>Akshay Kargutkar</strong> · Team Ops Avengers
+  </div>
+
+</div>
+<script>
+let selectedFile = null;
+let currentJobId = null;
+let pollTimer    = null;
+
+function setStep(n) {
+  for (let i = 1; i <= 3; i++) {
+    const el = document.getElementById('s' + i);
+    el.className = 'step' + (i < n ? ' done' : i === n ? ' active' : '');
+  }
+}
+
+function showInfo(msg) {
+  const el = document.getElementById('stInfo');
+  el.textContent = msg; el.classList.add('show');
+  document.getElementById('stErr').classList.remove('show');
+}
+function showErr(msg) {
+  const el = document.getElementById('stErr');
+  el.textContent = msg; el.classList.add('show');
+  document.getElementById('stInfo').classList.remove('show');
+}
+function clearStatus() {
+  document.getElementById('stInfo').classList.remove('show');
+  document.getElementById('stErr').classList.remove('show');
+}
+
+function setProgress(pct) {
+  document.getElementById('progWrap').classList.add('show');
+  document.getElementById('progBar').style.width = pct + '%';
+}
+
+function onFile(input) {
+  if (input.files[0]) receiveFile(input.files[0]);
+}
+function onDrop(e) {
+  e.preventDefault();
+  document.getElementById('upz').classList.remove('drag');
+  if (e.dataTransfer.files[0]) receiveFile(e.dataTransfer.files[0]);
+}
+function receiveFile(f) {
+  selectedFile = f;
+  const upz  = document.getElementById('upz');
+  upz.classList.add('has-file');
+  document.getElementById('upzIcon').textContent = '✅';
+  document.getElementById('upzTxt').innerHTML =
+    `<span class="green">${f.name}</span>`;
+  document.getElementById('upzHint').textContent =
+    (f.size / 1024).toFixed(1) + ' KB — ready to process';
+  document.getElementById('procBtn').disabled = false;
+  clearStatus();
+  document.getElementById('resultBox').classList.remove('show');
+  setStep(1);
+}
+
+async function startProcess() {
+  if (!selectedFile) return;
+
+  document.getElementById('procBtn').disabled = true;
+  document.getElementById('resultBox').classList.remove('show');
+  setStep(2);
+  setProgress(5);
+  showInfo('Uploading file…');
+
+  const fd = new FormData();
+  fd.append('file', selectedFile);
+
+  try {
+    const res  = await fetch('/upload', {method:'POST', body: fd});
+    const data = await res.json();
+    if (!res.ok || data.error) {
+      showErr('Upload error: ' + (data.error || res.statusText));
+      document.getElementById('procBtn').disabled = false;
+      return;
+    }
+    currentJobId = data.job_id;
+    pollStatus();
+  } catch(e) {
+    showErr('Upload failed: ' + e.message);
+    document.getElementById('procBtn').disabled = false;
+  }
+}
+
+function pollStatus() {
+  if (pollTimer) clearTimeout(pollTimer);
+  fetch('/status/' + currentJobId)
+    .then(r => r.json())
+    .then(data => {
+      setProgress(data.progress || 0);
+      if (data.status === 'done') {
+        setStep(3);
+        setProgress(100);
+        showInfo('✓ Done! ' + data.url_count + ' URLs resolved, ' +
+                 data.row_count + ' rows updated.');
+        document.getElementById('resUrls').textContent  = data.url_count;
+        document.getElementById('resRows').textContent  = data.row_count;
+        document.getElementById('resFname').textContent = 'ImageStack_Import_Final.xlsx';
+        document.getElementById('resultBox').classList.add('show');
+      } else if (data.status === 'error') {
+        showErr('Error: ' + data.error);
+        document.getElementById('procBtn').disabled = false;
+        setStep(1);
+      } else {
+        showInfo(data.status || 'Processing…');
+        pollTimer = setTimeout(pollStatus, 600);
+      }
+    })
+    .catch(() => { pollTimer = setTimeout(pollStatus, 1000); });
+}
+
+function downloadResult() {
+  if (!currentJobId) return;
+  window.location.href = '/download/' + currentJobId;
+  // Reset UI after a short delay
+  setTimeout(resetUI, 2500);
+}
+
+function resetUI() {
+  selectedFile   = null;
+  currentJobId   = null;
+  document.getElementById('procBtn').disabled = true;
+  document.getElementById('upz').classList.remove('has-file','drag');
+  document.getElementById('upzIcon').textContent = '📂';
+  document.getElementById('upzTxt').innerHTML =
+    '<strong>Click to upload</strong> or drag &amp; drop';
+  document.getElementById('upzHint').textContent =
+    'ImageStack_Import_Template.xlsx only';
+  document.getElementById('fInput').value = '';
+  document.getElementById('progWrap').classList.remove('show');
+  document.getElementById('progBar').style.width = '0%';
+  document.getElementById('resultBox').classList.remove('show');
+  clearStatus();
+  setStep(0);
+}
+
+setStep(0);
+</script>
+</body>
+</html>
+"""
+
+# ── Flask routes ──────────────────────────────────────────────
+@app.route('/')
+def index():
+    return render_template_string(UI_HTML)
+
+@app.route('/upload', methods=['POST'])
+def upload():
+    f = request.files.get('file')
+    if not f or not f.filename:
+        return jsonify(error='No file received.'), 400
+    if not f.filename.lower().endswith(('.xlsx', '.xls')):
+        return jsonify(error='Please upload an .xlsx file.'), 400
+
+    file_bytes = f.read()
+    job_id     = str(uuid.uuid4())
+
+    with jobs_lock:
+        jobs[job_id] = {
+            'status':       'queued',
+            'progress':     0,
+            'result_bytes': None,
+            'error':        None,
+            'row_count':    0,
+            'url_count':    0,
+        }
+
+    # Run in background thread so upload returns immediately
+    t = threading.Thread(target=process_job, args=(job_id, file_bytes), daemon=True)
+    t.start()
+
+    return jsonify(job_id=job_id)
+
+@app.route('/status/<job_id>')
+def status(job_id: str):
+    with jobs_lock:
+        job = jobs.get(job_id)
+    if not job:
+        return jsonify(error='Job not found.'), 404
+    return jsonify(
+        status    = job['status'],
+        progress  = job['progress'],
+        error     = job['error'],
+        row_count = job['row_count'],
+        url_count = job['url_count'],
+    )
+
+@app.route('/download/<job_id>')
+def download(job_id: str):
+    with jobs_lock:
+        job = jobs.get(job_id)
+
+    if not job or job['status'] != 'done' or not job['result_bytes']:
+        return 'Job not ready or not found.', 404
+
+    result_bytes = job['result_bytes']
+
+    # ── Auto-cleanup: remove job from memory after download ───
+    def cleanup():
+        time.sleep(3)
+        with jobs_lock:
+            jobs.pop(job_id, None)
+    threading.Thread(target=cleanup, daemon=True).start()
+
+    return send_file(
+        io.BytesIO(result_bytes),
+        as_attachment          = True,
+        download_name          = 'ImageStack_Import_Final.xlsx',
+        mimetype               = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+
+# ── Entry point ───────────────────────────────────────────────
+if __name__ == '__main__':
+    url = f'http://localhost:{PORT}'
+    print()
+    print('=' * 60)
+    print('  Pattern Data Processing — Image Stack Filename Fixer')
+    print('=' * 60)
+    print(f'  Server running at:  {url}')
+    print(f'  Opening browser automatically...')
+    print(f'  Press Ctrl+C to stop.')
+    print('=' * 60)
+    print()
+
+    # Open browser automatically after 1 second
+    threading.Timer(1.0, lambda: webbrowser.open(url)).start()
+
+    app.run(host='127.0.0.1', port=PORT, debug=False)
+
+</script>
+
+</body>
+</html>
