@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <title>Pattern Data Processing Automation Tool</title>
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -40,7 +40,7 @@
       --r-xs:4px; --r-sm:6px; --r-md:8px; --r-lg:12px; --r-xl:16px; --r-2xl:20px;
     }
 
-    html, body { height: 100%; scroll-behavior: smooth; }
+    html, body { height: 100%; scroll-behavior: smooth; width: 100%; margin: 0; padding: 0; }
     body {
       font-family: 'Sora', sans-serif;
       background: var(--pat-navy);
@@ -65,8 +65,9 @@
       background: rgba(10,15,30,.95);
       backdrop-filter: blur(20px);
       border-bottom: 1px solid var(--pat-border);
-      padding: 0 32px;
+      padding: 0 24px;
       height: 60px;
+      width: 100%;
       display: flex; align-items: center; justify-content: space-between;
     }
     .topbar::after {
@@ -119,8 +120,8 @@
       position: relative; z-index: 1;
       background: var(--grad-hero);
       border-bottom: 1px solid var(--pat-border);
-      padding: 36px 32px 32px;
-      overflow: hidden;
+      padding: 36px 24px 32px;
+      overflow: hidden; width: 100%;
     }
     .hero::before {
       content: '';
@@ -136,7 +137,7 @@
       background: radial-gradient(circle, rgba(43,110,245,.09) 0%, transparent 70%);
       pointer-events: none;
     }
-    .hero-inner { max-width: 1160px; margin: 0 auto; position: relative; z-index: 2; }
+    .hero-inner { max-width: 100%; margin: 0 auto; position: relative; z-index: 2; }
     .hero-eyebrow {
       font-family: 'IBM Plex Mono', monospace;
       font-size: 11px; font-weight: 500;
@@ -172,7 +173,7 @@
       position: relative; z-index: 1;
       background: rgba(245,158,11,.06);
       border-bottom: 1px solid rgba(245,158,11,.2);
-      padding: 10px 32px;
+      padding: 10px 24px; width: 100%;
       display: flex; align-items: flex-start; gap: 10px;
     }
     .disc-icon {
@@ -185,7 +186,7 @@
     .disc-text strong { color: #F59E0B; font-weight: 600; }
 
     /* ─── MAIN ────────────────────────────────────────── */
-    .main { padding: 28px 32px 80px; max-width: 1160px; margin: 0 auto; position: relative; z-index: 1; }
+    .main { padding: 24px 24px 80px; max-width: 100%; margin: 0 auto; position: relative; z-index: 1; }
 
     /* ─── WORKFLOW STRIP ──────────────────────────────── */
     .wf-strip {
@@ -346,7 +347,7 @@
       position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
       background: rgba(10,15,30,.97);
       border-top: 1px solid var(--pat-border);
-      padding: 10px 32px;
+      padding: 10px 24px; width: 100%;
       display: flex; align-items: center; justify-content: space-between;
       backdrop-filter: blur(20px);
     }
@@ -495,6 +496,31 @@
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--pat-steel); border-radius: 3px; }
+
+    /* ─── RESPONSIVE — fits any iframe width ──────────────── */
+    @media (max-width: 900px) {
+      .topbar  { padding: 0 16px; }
+      .hero    { padding: 24px 16px 20px; }
+      .main    { padding: 18px 16px 80px; }
+      .footer  { padding: 10px 16px; }
+      .disclaimer { padding: 10px 16px; }
+      .hero-title { font-size: 22px; }
+      .mgrid  { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+      .wf-strip { padding: 14px 16px; }
+    }
+    @media (max-width: 600px) {
+      .topbar  { padding: 0 12px; }
+      .hero    { padding: 18px 12px 16px; }
+      .main    { padding: 14px 12px 80px; }
+      .footer  { padding: 8px 12px; }
+      .disclaimer { padding: 8px 12px; }
+      .hero-title { font-size: 18px; }
+      .logo-name  { font-size: 13px; }
+      .mgrid  { grid-template-columns: 1fr; }
+      .btn-brand  { padding: 7px 12px; font-size: 11px; }
+      .btn-ghost  { display: none; }
+      .stat-row   { grid-template-columns: 1fr 1fr; }
+    }
   </style>
 </head>
 <body>
